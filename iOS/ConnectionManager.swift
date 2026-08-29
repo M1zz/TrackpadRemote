@@ -93,7 +93,7 @@ final class ConnectionManager: NSObject, ObservableObject {
     nonisolated func send(_ packet: InputPacket) {
         let reliable: Bool
         switch packet.type {
-        case .moveAbsolute, .scroll:
+        case .moveRelative, .scroll:
             reliable = false   // lossy is fine; the next position supersedes
         case .leftClick, .rightClick, .dragBegin, .dragEnd, .screenInfo:
             reliable = true    // must never be dropped

@@ -10,10 +10,12 @@
 import Foundation
 
 enum PacketType: UInt8 {
-    /// iPhone → Mac. `a`, `b` = pointer position normalized to 0...1 over the
-    /// desktop rect. The pad is an absolute 1:1 map of the display, tablet-style,
-    /// so the phone sends where the finger *is*, not how far it moved.
-    case moveAbsolute = 0x01
+    /// iPhone → Mac. `a`, `b` = how far the finger moved, as a fraction of the
+    /// pad's width (both axes use width, so the gain is isotropic whatever the
+    /// pad's shape). Relative like a real trackpad: the cursor moves *from where
+    /// it is*, so touching the pad never warps it. The Mac scales by the desktop
+    /// width, which makes one full swipe across the pad cross the whole desktop.
+    case moveRelative = 0x01
     /// iPhone → Mac. `a` = click count (1 single, 2 double, 3 triple).
     case leftClick    = 0x02
     /// iPhone → Mac. `a` = click count.

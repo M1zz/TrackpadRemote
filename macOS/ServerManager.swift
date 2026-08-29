@@ -80,7 +80,7 @@ final class ServerManager: NSObject, ObservableObject {
         advertiser.startAdvertisingPeer()
         serverLog.info("advertising as \(self.peerID.displayName, privacy: .public) on \(ServiceConfig.serviceType, privacy: .public)")
 
-        desktopSize = injector.refreshDesktopBounds().size
+        desktopSize = injector.refreshScreenLayout().size
 
         // Rearranging displays changes the rect the pad maps onto, so the phone
         // has to be told to re-letterbox its surface.
@@ -90,7 +90,7 @@ final class ServerManager: NSObject, ObservableObject {
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                self.desktopSize = self.injector.refreshDesktopBounds().size
+                self.desktopSize = self.injector.refreshScreenLayout().size
                 self.sendScreenInfo()
             }
         }

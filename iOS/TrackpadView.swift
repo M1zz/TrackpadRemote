@@ -4,13 +4,16 @@
 //
 //  UIKit touch surface wrapped for SwiftUI.
 //
-//  The surface is an ABSOLUTE map of the Mac desktop: the view is sized to the
-//  desktop's aspect ratio by the parent, so a touch at 30% across the pad puts
-//  the cursor at 30% across the screen. Tablet-style, not trackpad-style — there
-//  is no cursor acceleration and no "pick up and reposition".
+//  A real trackpad, not a tablet: the pad reports how far the finger moved, and
+//  the cursor continues from wherever it already is. Touching the pad never warps
+//  the cursor, and lifting and replacing a finger repositions the cursor's origin
+//  the way it does on a Magic Trackpad.
+//
+//  The view is sized to the desktop's aspect ratio by the parent, so one full
+//  swipe across the pad covers the whole desktop at rest gain.
 //
 //  Gestures:
-//    - 1-finger touch/move  -> cursor jumps to and follows that point
+//    - 1-finger move        -> cursor moves by that much (with acceleration)
 //    - 1-finger tap         -> left click (2nd/3rd fast tap -> double/triple click)
 //    - 2-finger tap         -> right click
 //    - 2-finger pan         -> scroll (natural direction)
@@ -52,6 +55,11 @@ final class TrackpadUIView: UIView {
     private let multiTapMaxDistance: CGFloat = 44
     private let maxClickCount: Float = 3
     private let scrollMultiplier: CGFloat = 2.0
+    /// Gain applied to a barely-moving finger; below 1 so precision work is possible.
+    private let minGain: CGFloat = 0.55
+    private let maxGain: CGFloat = 2.6
+    /// Points per event at which acceleration reaches maxGain.
+    private let accelerationDivisor: CGFloat = 9.0
     private let rippleRadius: CGFloat = 26
     private let rippleDuration: CFTimeInterval = 0.35
 
@@ -61,6 +69,7 @@ final class TrackpadUIView: UIView {
     private var gestureStartTime: TimeInterval = 0
     private var gestureStartPoint: CGPoint = .zero
     private var totalMovement: CGFloat = 0
+    private var lastPoint: CGPoint?
     private var lastTwoFingerCentroid: CGPoint?
     private var isDragging = false
     private var pendingDrag = false
@@ -103,7 +112,8 @@ final class TrackpadUIView: UIView {
             // Double-tap-and-hold begins a drag
             pendingDrag = soonEnough && closeEnough && clickCount >= 1
 
-            sendPosition(p)
+            // Deliberately no packet here: the cursor stays where the user left it.
+            lastPoint = p
 
         } else if activeTouches.count == 2 {
             lastTwoFingerCentroid = centroid(of: activeTouches)
@@ -120,7 +130,11 @@ final class TrackpadUIView: UIView {
             guard maxSimultaneousTouches == 1 else { return }
 
             let p = touch.location(in: self)
-            totalMovement += hypot(p.x - gestureStartPoint.x, p.y - gestureStartPoint.y)
+            guard let last = lastPoint else { lastPoint = p; return }
+            let rawDx = p.x - last.x
+            let rawDy = p.y - last.y
+            lastPoint = p
+            totalMovement += abs(rawDx) + abs(rawDy)
 
             // Movement past threshold while a drag is pending = drag start
             if pendingDrag && !isDragging && totalMovement > tapMaxMovement {
@@ -129,7 +143,7 @@ final class TrackpadUIView: UIView {
                 send?(InputPacket(type: .dragBegin))
             }
 
-            sendPosition(p)
+            sendDelta(dx: rawDx, dy: rawDy)
 
         } else if activeTouches.count == 2 {
             let c = centroid(of: activeTouches)
@@ -231,17 +245,30 @@ final class TrackpadUIView: UIView {
 
     // MARK: - Helpers
 
-    /// Maps a point in the pad to 0...1 over the desktop. The pad is already
-    /// letterboxed to the desktop's aspect ratio, so this is a straight 1:1 map.
-    private func sendPosition(_ p: CGPoint) {
-        guard bounds.width > 0, bounds.height > 0 else { return }
-        let x = min(max(p.x / bounds.width, 0), 1)
-        let y = min(max(p.y / bounds.height, 0), 1)
-        send?(InputPacket(type: .moveAbsolute, a: Float(x), b: Float(y)))
+    /// Sends the movement as a fraction of the pad's width, so the Mac can scale
+    /// it to any desktop without knowing this phone's size. Both axes divide by
+    /// width on purpose: dividing y by height would skew diagonals whenever the
+    /// pad's aspect drifts from the desktop's.
+    private func sendDelta(dx: CGFloat, dy: CGFloat) {
+        guard bounds.width > 0 else { return }
+        let (ax, ay) = accelerated(dx: dx, dy: dy)
+        send?(InputPacket(type: .moveRelative,
+                          a: Float(ax / bounds.width),
+                          b: Float(ay / bounds.width)))
+    }
+
+    /// Pointer acceleration, the part that makes a trackpad feel like a trackpad:
+    /// slow moves stay under rest gain so small targets are reachable, fast flicks
+    /// multiply up so the cursor can cross the screen without a second swipe.
+    private func accelerated(dx: CGFloat, dy: CGFloat) -> (CGFloat, CGFloat) {
+        let speed = hypot(dx, dy)
+        let multiplier = minGain + min(speed / accelerationDivisor, maxGain - minGain)
+        return (dx * multiplier, dy * multiplier)
     }
 
     private func resetGestureState() {
         maxSimultaneousTouches = 0
+        lastPoint = nil
         lastTwoFingerCentroid = nil
         isDragging = false
         pendingDrag = false
