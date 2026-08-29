@@ -21,16 +21,21 @@ import SwiftUI
 import UIKit
 
 struct TrackpadView: UIViewRepresentable {
+    /// Matches the surface's background shape so ripples are clipped to it.
+    let cornerRadius: CGFloat
     let send: (InputPacket) -> Void
 
     func makeUIView(context: Context) -> TrackpadUIView {
         let view = TrackpadUIView()
         view.send = send
+        view.layer.cornerRadius = cornerRadius
+        view.layer.masksToBounds = true
         return view
     }
 
     func updateUIView(_ uiView: TrackpadUIView, context: Context) {
         uiView.send = send
+        uiView.layer.cornerRadius = cornerRadius
     }
 }
 
@@ -47,6 +52,8 @@ final class TrackpadUIView: UIView {
     private let multiTapMaxDistance: CGFloat = 44
     private let maxClickCount: Float = 3
     private let scrollMultiplier: CGFloat = 2.0
+    private let rippleRadius: CGFloat = 26
+    private let rippleDuration: CFTimeInterval = 0.35
 
     // Touch tracking state
     private var activeTouches = Set<UITouch>()
@@ -74,7 +81,10 @@ final class TrackpadUIView: UIView {
     // MARK: - Touch lifecycle
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { activeTouches.insert(t) }
+        for t in touches {
+            activeTouches.insert(t)
+            showRipple(at: t.location(in: self))
+        }
         maxSimultaneousTouches = max(maxSimultaneousTouches, activeTouches.count)
 
         if activeTouches.count == 1, let touch = touches.first {
@@ -176,6 +186,47 @@ final class TrackpadUIView: UIView {
             clickCount = 0
             resetGestureState()
         }
+    }
+
+    // MARK: - Touch feedback
+
+    /// Expanding ring at the point touched. On an absolute pad the finger is the
+    /// cursor, so the surface has to confirm *where* it read the touch — there is
+    /// no on-screen cursor here to do that.
+    private func showRipple(at point: CGPoint) {
+        let ring = CAShapeLayer()
+        ring.path = UIBezierPath(arcCenter: .zero,
+                                 radius: rippleRadius,
+                                 startAngle: 0,
+                                 endAngle: .pi * 2,
+                                 clockwise: true).cgPath
+        ring.position = point
+        ring.fillColor = UIColor.tintColor.withAlphaComponent(0.18).cgColor
+        ring.strokeColor = UIColor.tintColor.withAlphaComponent(0.9).cgColor
+        ring.lineWidth = 1.5
+        ring.opacity = 0
+        layer.addSublayer(ring)
+
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak ring] in ring?.removeFromSuperlayer() }
+
+        let scale = CABasicAnimation(keyPath: "transform.scale")
+        scale.fromValue = 0.45
+        scale.toValue = 1.15
+
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1.0
+        fade.toValue = 0.0
+
+        let group = CAAnimationGroup()
+        group.animations = [scale, fade]
+        group.duration = rippleDuration
+        group.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        group.isRemovedOnCompletion = false
+        group.fillMode = .forwards
+        ring.add(group, forKey: "ripple")
+
+        CATransaction.commit()
     }
 
     // MARK: - Helpers

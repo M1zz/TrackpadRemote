@@ -9,6 +9,8 @@ struct ContentView: View {
     @EnvironmentObject var connection: ConnectionManager
 
 
+    private let padCornerRadius: CGFloat = 20
+
     var body: some View {
         ZStack {
             Color(.systemBackground).ignoresSafeArea()
@@ -45,16 +47,16 @@ struct ContentView: View {
 
             // Letterboxed to the Mac's aspect ratio: the pad is a scale model of
             // the desktop, so it must not be stretched to fill the phone.
-            TrackpadView { packet in
+            TrackpadView(cornerRadius: padCornerRadius) { packet in
                 connection.send(packet)
             }
             .aspectRatio(connection.desktopAspect, contentMode: .fit)
             .background(
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: padCornerRadius)
                     .fill(Color(.secondarySystemBackground))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: padCornerRadius)
                     .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
             )
             .overlay(alignment: .top) { topMarker }

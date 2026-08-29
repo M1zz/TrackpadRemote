@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -25,7 +25,7 @@
 		846DB57D5D91FA0FC5466BD6 /* TrackpadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadView.swift; sourceTree = "<group>"; };
 		890806947BB9E168011462D1 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
 		9D90DCF8D7AE3B6EAEF89DBC /* TrackpadServer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrackpadServer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A9CCE1427DE3737E6A9D8EB1 /* TrackpadRemote.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TrackpadRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A9CCE1427DE3737E6A9D8EB1 /* TrackpadRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrackpadRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputPacket.swift; sourceTree = "<group>"; };
 		CDAAAAF3104DE590AFF569FA /* EventInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventInjector.swift; sourceTree = "<group>"; };
 		EEF6DDD6AC41522FBDC6217E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -131,7 +131,6 @@
 						ProvisioningStyle = Automatic;
 					};
 					BFED3B56D04450D1048E1A12 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -146,7 +145,6 @@
 			);
 			mainGroup = BDE4B91006D0437552C8F53E;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -336,6 +334,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = QGAQ3AY3R3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Resources/TrackpadRemote-Info.plist";
@@ -354,6 +353,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = QGAQ3AY3R3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Resources/TrackpadRemote-Info.plist";
