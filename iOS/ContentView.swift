@@ -11,8 +11,6 @@ struct ContentView: View {
 
     private let padCornerRadius: CGFloat = 20
 
-    @State private var isAirMouse = false
-
     var body: some View {
         ZStack {
             Color(.systemBackground).ignoresSafeArea()
@@ -39,19 +37,7 @@ struct ContentView: View {
                 Label(macName, systemImage: "laptopcomputer")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-
-                Spacer(minLength: 12)
-
-                Picker("Input mode", selection: $isAirMouse) {
-                    Image(systemName: "hand.point.up.left").tag(false)
-                    Image(systemName: "dot.scope").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 110)
-
-                Spacer(minLength: 12)
-
+                Spacer()
                 Button("Disconnect") { connection.disconnect() }
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -61,7 +47,7 @@ struct ContentView: View {
 
             // Letterboxed to the Mac's aspect ratio: the pad is a scale model of
             // the desktop, so it must not be stretched to fill the phone.
-            TrackpadView(cornerRadius: padCornerRadius, isAirMouse: isAirMouse) { packet in
+            TrackpadView(cornerRadius: padCornerRadius) { packet in
                 connection.send(packet)
             }
             .aspectRatio(connection.desktopAspect, contentMode: .fit)
@@ -74,7 +60,6 @@ struct ContentView: View {
                     .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
             )
             .overlay(alignment: .top) { topMarker }
-            .overlay { if isAirMouse { airMouseHint } }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(8)
         }
@@ -93,18 +78,6 @@ struct ContentView: View {
         .foregroundStyle(.tertiary)
         .padding(.top, 8)
         // Never swallow a touch meant for the pad
-        .allowsHitTesting(false)
-    }
-
-    /// The clutch is the one thing about air mouse mode that is not guessable.
-    private var airMouseHint: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "hand.tap")
-                .font(.title3)
-            Text("Hold anywhere, then aim the phone")
-                .font(.caption)
-        }
-        .foregroundStyle(.tertiary)
         .allowsHitTesting(false)
     }
 

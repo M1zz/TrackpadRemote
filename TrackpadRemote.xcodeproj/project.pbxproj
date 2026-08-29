@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3DE198ED8EE4DD5E99C5CF62 /* MotionPointer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6ADE5BEAA64D6CEB9DDA1A5 /* MotionPointer.swift */; };
 		552CFD7F47489491CD27F7D6 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 890806947BB9E168011462D1 /* ConnectionManager.swift */; };
 		75081F6138C6CA138BB44AA1 /* InputPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */; };
 		7CEAA3C74D2DB1EB514E7F4F /* ServerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 675E954C434223DF36E62BDC /* ServerManager.swift */; };
@@ -30,7 +29,6 @@
 		ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputPacket.swift; sourceTree = "<group>"; };
 		CDAAAAF3104DE590AFF569FA /* EventInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventInjector.swift; sourceTree = "<group>"; };
 		EEF6DDD6AC41522FBDC6217E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		F6ADE5BEAA64D6CEB9DDA1A5 /* MotionPointer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionPointer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -58,7 +56,6 @@
 			children = (
 				890806947BB9E168011462D1 /* ConnectionManager.swift */,
 				EEF6DDD6AC41522FBDC6217E /* ContentView.swift */,
-				F6ADE5BEAA64D6CEB9DDA1A5 /* MotionPointer.swift */,
 				50EE9A835306792F44F6684C /* TrackpadRemoteApp.swift */,
 				846DB57D5D91FA0FC5466BD6 /* TrackpadView.swift */,
 			);
@@ -178,7 +175,6 @@
 				552CFD7F47489491CD27F7D6 /* ConnectionManager.swift in Sources */,
 				F593EE0C2A3666787C57D8B6 /* ContentView.swift in Sources */,
 				75081F6138C6CA138BB44AA1 /* InputPacket.swift in Sources */,
-				3DE198ED8EE4DD5E99C5CF62 /* MotionPointer.swift in Sources */,
 				AEAEA9CC106D071EA15DDB6D /* TrackpadRemoteApp.swift in Sources */,
 				ABAA47B0BD45DD3EC003D78F /* TrackpadView.swift in Sources */,
 			);
