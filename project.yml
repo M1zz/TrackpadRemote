@@ -11,7 +11,12 @@ settings:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    # A stable signing identity is not cosmetic here: TCC pins the Accessibility
+    # grant to the ad-hoc CDHash, which changes on every build, so an ad-hoc
+    # signed server loses the grant each rebuild while still showing as enabled
+    # in System Settings. An Apple Development identity gives a stable
+    # requirement (team + bundle id) that survives rebuilds.
+    DEVELOPMENT_TEAM: QGAQ3AY3R3
     CODE_SIGN_STYLE: Automatic
     SWIFT_EMIT_LOC_STRINGS: YES
 

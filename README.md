@@ -51,6 +51,43 @@ xcodegen generate
 
 Info.plist(`Resources/*-Info.plist`)도 `project.yml`에서 생성되므로 직접 편집하지 말 것.
 
+### 접근성 권한이 자꾸 풀린다면
+
+**서버 타깃은 반드시 안정적인 서명 identity로 빌드해야 한다.** ad-hoc 서명
+(`Signature=adhoc`, `TeamIdentifier=not set`)이면 TCC가 접근성 권한을 바이너리의
+**CDHash**에 묶는데, 이 해시는 빌드할 때마다 바뀐다. 결과가 고약하다 —
+System Settings의 접근성 목록에는 TrackpadServer가 **켜진 채로 그대로 보이는데**
+`AXIsProcessTrusted()`는 false를 돌려주고, 커서는 아무 말 없이 안 움직인다.
+
+`project.yml`의 `DEVELOPMENT_TEAM`이 그래서 채워져 있다. Apple Development
+인증서로 서명하면 designated requirement가 CDHash 대신 번들 ID + 인증서가 되어
+재빌드를 견딘다:
+
+```
+designated => identifier "com.hyunholee.TrackpadServer" and anchor apple generic
+              and certificate leaf[subject.CN] = "Apple Development: ..."
+```
+
+ad-hoc으로 빌드한 적이 있다면 낡은 항목이 남아 계속 실패하므로 한 번 지워야 한다:
+
+```bash
+tccutil reset Accessibility com.hyunholee.TrackpadServer
+```
+
+그 다음 앱을 다시 실행해 권한을 한 번만 주면 된다.
+
+### 문제 진단
+
+서버는 전 구간에 `os_log`를 남긴다:
+
+```bash
+log stream --predicate 'subsystem == "com.hyunholee.TrackpadServer"' --level debug
+```
+
+광고 시작, 초대 수락/거절, 연결, screenInfo 전송, 디코딩 실패 패킷, 데스크톱
+좌표, 커서 이동 샘플, 모든 클릭이 찍힌다. 권한이 없으면 메뉴바 아이콘이 경고
+삼각형으로 바뀐다.
+
 ### 서버 타깃의 제약
 
 - **App Sandbox 비활성** (`Resources/TrackpadServer.entitlements`) — 샌드박스에서는 `CGEventPost`가 막힌다.
