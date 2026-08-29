@@ -60,6 +60,13 @@ final class TrackpadUIView: UIView {
     private let maxGain: CGFloat = 2.6
     /// Points per event at which acceleration reaches maxGain.
     private let accelerationDivisor: CGFloat = 9.0
+    /// Evidence (in points) to accumulate before committing a two-finger gesture
+    /// to scrolling or pinching. Too low and a slightly uneven scroll zooms.
+    private let twoFingerDecisionThreshold: CGFloat = 24
+    /// Spread change per zoom step.
+    private let pinchStepDistance: CGFloat = 55
+    /// Three-finger travel before a swipe fires.
+    private let swipeThreshold: CGFloat = 55
     private let rippleRadius: CGFloat = 26
     private let rippleDuration: CFTimeInterval = 0.35
 
@@ -73,6 +80,19 @@ final class TrackpadUIView: UIView {
     private var lastTwoFingerCentroid: CGPoint?
     private var isDragging = false
     private var pendingDrag = false
+
+    /// Two fingers can mean scroll or pinch. Decide once, from whichever is
+    /// clearly winning, then stay decided — switching mid-gesture feels broken.
+    private enum TwoFingerMode { case undecided, scroll, pinch }
+    private var twoFingerMode: TwoFingerMode = .undecided
+    private var scrollEvidence: CGFloat = 0
+    private var pinchEvidence: CGFloat = 0
+    private var lastSpread: CGFloat?
+    private var pinchAccumulator: CGFloat = 0
+
+    /// Three-finger swipes fire once per gesture, not once per frame.
+    private var threeFingerStart: CGPoint?
+    private var didFireSwipe = false
 
     // Click-chain state, kept across gestures
     private var lastTapEndTime: TimeInterval = 0
@@ -117,9 +137,22 @@ final class TrackpadUIView: UIView {
 
         } else if activeTouches.count == 2 {
             lastTwoFingerCentroid = centroid(of: activeTouches)
+            lastSpread = spread(of: activeTouches)
+            twoFingerMode = .undecided
+            scrollEvidence = 0
+            pinchEvidence = 0
+            pinchAccumulator = 0
             // A second finger cancels any pending drag and any click chain
             pendingDrag = false
             clickCount = 0
+
+        } else if activeTouches.count == 3 {
+            threeFingerStart = centroid(of: activeTouches)
+            didFireSwipe = false
+            // Whatever the two fingers were doing, this is a different gesture.
+            twoFingerMode = .undecided
+            lastTwoFingerCentroid = nil
+            lastSpread = nil
         }
     }
 
@@ -146,17 +179,69 @@ final class TrackpadUIView: UIView {
             sendDelta(dx: rawDx, dy: rawDy)
 
         } else if activeTouches.count == 2 {
-            let c = centroid(of: activeTouches)
-            guard let last = lastTwoFingerCentroid else { lastTwoFingerCentroid = c; return }
+            handleTwoFingers()
 
-            let dx = (c.x - last.x) * scrollMultiplier
-            let dy = (c.y - last.y) * scrollMultiplier
-            lastTwoFingerCentroid = c
-            totalMovement += hypot(dx, dy)
-
-            // Natural scrolling: content follows fingers
-            send?(InputPacket(type: .scroll, a: Float(dx), b: Float(dy)))
+        } else if activeTouches.count == 3 {
+            handleThreeFingers()
         }
+    }
+
+    // MARK: - Multi-finger gestures
+
+    private func handleTwoFingers() {
+        let c = centroid(of: activeTouches)
+        let s = spread(of: activeTouches)
+        defer {
+            lastTwoFingerCentroid = c
+            lastSpread = s
+        }
+        guard let lastCentroid = lastTwoFingerCentroid, let lastSpread else { return }
+
+        let panDelta = CGPoint(x: c.x - lastCentroid.x, y: c.y - lastCentroid.y)
+        let spreadDelta = s - lastSpread
+        totalMovement += hypot(panDelta.x, panDelta.y) + abs(spreadDelta)
+
+        if twoFingerMode == .undecided {
+            scrollEvidence += hypot(panDelta.x, panDelta.y)
+            pinchEvidence += abs(spreadDelta)
+            guard max(scrollEvidence, pinchEvidence) > twoFingerDecisionThreshold else { return }
+            twoFingerMode = pinchEvidence > scrollEvidence ? .pinch : .scroll
+        }
+
+        switch twoFingerMode {
+        case .scroll:
+            // Natural scrolling: content follows fingers
+            send?(InputPacket(type: .scroll,
+                              a: Float(panDelta.x * scrollMultiplier),
+                              b: Float(panDelta.y * scrollMultiplier)))
+        case .pinch:
+            // Zoom is stepped on the Mac side, so emit a notch per unit of spread
+            // rather than streaming every pixel of it.
+            pinchAccumulator += spreadDelta
+            while abs(pinchAccumulator) >= pinchStepDistance {
+                let zoomingIn = pinchAccumulator > 0
+                pinchAccumulator -= zoomingIn ? pinchStepDistance : -pinchStepDistance
+                send?(InputPacket(type: .zoom, a: zoomingIn ? 1 : -1))
+            }
+        case .undecided:
+            break
+        }
+    }
+
+    private func handleThreeFingers() {
+        guard !didFireSwipe, let start = threeFingerStart else { return }
+        let c = centroid(of: activeTouches)
+        let dx = c.x - start.x
+        let dy = c.y - start.y
+        totalMovement += abs(dx) + abs(dy)
+
+        guard max(abs(dx), abs(dy)) > swipeThreshold else { return }
+        didFireSwipe = true
+
+        let direction: SwipeDirection = abs(dx) > abs(dy)
+            ? (dx > 0 ? .right : .left)
+            : (dy > 0 ? .down : .up)
+        send?(InputPacket(type: .swipe, a: Float(direction.rawValue)))
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -182,7 +267,7 @@ final class TrackpadUIView: UIView {
             return
         }
 
-        if maxSimultaneousTouches >= 2 {
+        if maxSimultaneousTouches == 2 {
             send?(InputPacket(type: .rightClick, a: 1))
             clickCount = 0
         } else {
@@ -270,9 +355,29 @@ final class TrackpadUIView: UIView {
         maxSimultaneousTouches = 0
         lastPoint = nil
         lastTwoFingerCentroid = nil
+        lastSpread = nil
+        twoFingerMode = .undecided
+        scrollEvidence = 0
+        pinchEvidence = 0
+        pinchAccumulator = 0
+        threeFingerStart = nil
+        didFireSwipe = false
         isDragging = false
         pendingDrag = false
         totalMovement = 0
+    }
+
+    /// Mean distance from the centroid. Works for any finger count, unlike the
+    /// usual two-point distance, so a third finger landing doesn't spike it.
+    private func spread(of touches: Set<UITouch>) -> CGFloat {
+        guard touches.count > 1 else { return 0 }
+        let c = centroid(of: touches)
+        var total: CGFloat = 0
+        for t in touches {
+            let p = t.location(in: self)
+            total += hypot(p.x - c.x, p.y - c.y)
+        }
+        return total / CGFloat(touches.count)
     }
 
     private func centroid(of touches: Set<UITouch>) -> CGPoint {

@@ -103,6 +103,11 @@ final class EventInjector: @unchecked Sendable {
                 self.dragBegin()
             case .dragEnd:
                 self.dragEnd()
+            case .swipe:
+                guard let direction = SwipeDirection(rawValue: UInt8(max(0, min(packet.a, 255)))) else { break }
+                self.swipe(direction)
+            case .zoom:
+                self.zoom(in: packet.a > 0)
             case .screenInfo:
                 break   // Mac sends this; it never receives it.
             }
@@ -191,6 +196,58 @@ final class EventInjector: @unchecked Sendable {
             }
         }
         return best
+    }
+
+    // MARK: - Multi-finger gestures
+    //
+    // These are posted as the keyboard shortcuts macOS already binds to the same
+    // actions, not as synthetic trackpad gesture events. Injecting real
+    // NSEventTypeSwipe/Magnify means writing undocumented fields into a CGEvent
+    // whose type isn't in CGEventType at all; the shortcuts are public API, do
+    // exactly the same thing, and don't break on an OS update. The cost is that
+    // a user who has rebound or disabled these shortcuts loses the gesture, and
+    // that zoom is stepped rather than continuous.
+
+    private enum Key {
+        static let leftArrow: CGKeyCode  = 0x7B
+        static let rightArrow: CGKeyCode = 0x7C
+        static let downArrow: CGKeyCode  = 0x7D
+        static let upArrow: CGKeyCode    = 0x7E
+        static let equals: CGKeyCode     = 0x18   // Cmd+= is zoom in
+        static let minus: CGKeyCode      = 0x1B
+    }
+
+    private func swipe(_ direction: SwipeDirection) {
+        // Content follows the fingers: swiping left drags the current space out
+        // to the left, which brings the space on the right into view.
+        let key: CGKeyCode
+        switch direction {
+        case .up:    key = Key.upArrow      // Mission Control
+        case .down:  key = Key.downArrow    // App Exposé
+        case .left:  key = Key.rightArrow   // next space to the right
+        case .right: key = Key.leftArrow    // previous space
+        }
+        injectorLog.info("swipe \(String(describing: direction), privacy: .public)")
+        postKey(key, flags: .maskControl)
+    }
+
+    private func zoom(in zoomingIn: Bool) {
+        injectorLog.info("zoom \(zoomingIn ? "in" : "out", privacy: .public)")
+        postKey(zoomingIn ? Key.equals : Key.minus, flags: .maskCommand)
+    }
+
+    private func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        for isDown in [true, false] {
+            let event = CGEvent(keyboardEventSource: source,
+                                virtualKey: keyCode,
+                                keyDown: isDown)
+            // Assigning flags after creation, not merging: the source carries the
+            // real keyboard's current modifiers, and a Shift the user happens to
+            // be holding would turn Cmd+= into Cmd++.
+            event?.flags = flags
+            event?.post(tap: .cghidEventTap)
+        }
     }
 
     private func scroll(dx: Int32, dy: Int32) {
