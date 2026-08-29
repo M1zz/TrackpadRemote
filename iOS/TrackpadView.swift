@@ -26,11 +26,13 @@ import UIKit
 struct TrackpadView: UIViewRepresentable {
     /// Matches the surface's background shape so ripples are clipped to it.
     let cornerRadius: CGFloat
+    let tuning: PadTuning
     let send: (InputPacket) -> Void
 
     func makeUIView(context: Context) -> TrackpadUIView {
         let view = TrackpadUIView()
         view.send = send
+        view.tuning = tuning
         view.layer.cornerRadius = cornerRadius
         view.layer.masksToBounds = true
         return view
@@ -38,6 +40,7 @@ struct TrackpadView: UIViewRepresentable {
 
     func updateUIView(_ uiView: TrackpadUIView, context: Context) {
         uiView.send = send
+        uiView.tuning = tuning
         uiView.layer.cornerRadius = cornerRadius
     }
 }
@@ -45,6 +48,10 @@ struct TrackpadView: UIViewRepresentable {
 final class TrackpadUIView: UIView {
 
     var send: ((InputPacket) -> Void)?
+
+    /// User-adjustable feel. Everything below is fixed because it describes what
+    /// a tap *is*, not how fast it should feel.
+    var tuning = PadTuning()
 
     // Tuning
     private let tapMaxDuration: TimeInterval = 0.25
@@ -54,19 +61,11 @@ final class TrackpadUIView: UIView {
     /// A follow-up tap this far from the previous one starts a new click chain.
     private let multiTapMaxDistance: CGFloat = 44
     private let maxClickCount: Float = 3
-    private let scrollMultiplier: CGFloat = 2.0
-    /// Gain applied to a barely-moving finger; below 1 so precision work is possible.
-    private let minGain: CGFloat = 0.55
-    private let maxGain: CGFloat = 2.6
     /// Points per event at which acceleration reaches maxGain.
     private let accelerationDivisor: CGFloat = 9.0
     /// Evidence (in points) to accumulate before committing a two-finger gesture
     /// to scrolling or pinching. Too low and a slightly uneven scroll zooms.
     private let twoFingerDecisionThreshold: CGFloat = 24
-    /// Spread change per zoom step.
-    private let pinchStepDistance: CGFloat = 55
-    /// Three-finger travel before a swipe fires.
-    private let swipeThreshold: CGFloat = 55
     private let rippleRadius: CGFloat = 26
     private let rippleDuration: CFTimeInterval = 0.35
 
@@ -202,6 +201,10 @@ final class TrackpadUIView: UIView {
         totalMovement += hypot(panDelta.x, panDelta.y) + abs(spreadDelta)
 
         if twoFingerMode == .undecided {
+            guard tuning.pinchEnabled else {
+                twoFingerMode = .scroll
+                return
+            }
             scrollEvidence += hypot(panDelta.x, panDelta.y)
             pinchEvidence += abs(spreadDelta)
             guard max(scrollEvidence, pinchEvidence) > twoFingerDecisionThreshold else { return }
@@ -211,16 +214,17 @@ final class TrackpadUIView: UIView {
         switch twoFingerMode {
         case .scroll:
             // Natural scrolling: content follows fingers
+            let direction: CGFloat = tuning.naturalScrolling ? 1 : -1
             send?(InputPacket(type: .scroll,
-                              a: Float(panDelta.x * scrollMultiplier),
-                              b: Float(panDelta.y * scrollMultiplier)))
+                              a: Float(panDelta.x * tuning.scrollMultiplier * direction),
+                              b: Float(panDelta.y * tuning.scrollMultiplier * direction)))
         case .pinch:
             // Zoom is stepped on the Mac side, so emit a notch per unit of spread
             // rather than streaming every pixel of it.
             pinchAccumulator += spreadDelta
-            while abs(pinchAccumulator) >= pinchStepDistance {
+            while abs(pinchAccumulator) >= tuning.pinchStepDistance {
                 let zoomingIn = pinchAccumulator > 0
-                pinchAccumulator -= zoomingIn ? pinchStepDistance : -pinchStepDistance
+                pinchAccumulator -= zoomingIn ? tuning.pinchStepDistance : -tuning.pinchStepDistance
                 send?(InputPacket(type: .zoom, a: zoomingIn ? 1 : -1))
             }
         case .undecided:
@@ -229,13 +233,13 @@ final class TrackpadUIView: UIView {
     }
 
     private func handleThreeFingers() {
-        guard !didFireSwipe, let start = threeFingerStart else { return }
+        guard tuning.swipeEnabled, !didFireSwipe, let start = threeFingerStart else { return }
         let c = centroid(of: activeTouches)
         let dx = c.x - start.x
         let dy = c.y - start.y
         totalMovement += abs(dx) + abs(dy)
 
-        guard max(abs(dx), abs(dy)) > swipeThreshold else { return }
+        guard max(abs(dx), abs(dy)) > tuning.swipeThreshold else { return }
         didFireSwipe = true
 
         let direction: SwipeDirection = abs(dx) > abs(dy)
@@ -347,7 +351,8 @@ final class TrackpadUIView: UIView {
     /// multiply up so the cursor can cross the screen without a second swipe.
     private func accelerated(dx: CGFloat, dy: CGFloat) -> (CGFloat, CGFloat) {
         let speed = hypot(dx, dy)
-        let multiplier = minGain + min(speed / accelerationDivisor, maxGain - minGain)
+        let multiplier = tuning.minGain + min(speed / accelerationDivisor,
+                                             max(0, tuning.maxGain - tuning.minGain))
         return (dx * multiplier, dy * multiplier)
     }
 

@@ -8,22 +8,26 @@
 
 /* Begin PBXBuildFile section */
 		552CFD7F47489491CD27F7D6 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 890806947BB9E168011462D1 /* ConnectionManager.swift */; };
+		639D2731EE1F95C4A7E96DC7 /* PadSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D69C600F1886E4FA0C130DD /* PadSettings.swift */; };
 		75081F6138C6CA138BB44AA1 /* InputPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */; };
 		7CEAA3C74D2DB1EB514E7F4F /* ServerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 675E954C434223DF36E62BDC /* ServerManager.swift */; };
 		956DA37122244AA3E2D0C283 /* InputPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */; };
 		ABAA47B0BD45DD3EC003D78F /* TrackpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 846DB57D5D91FA0FC5466BD6 /* TrackpadView.swift */; };
 		AEAEA9CC106D071EA15DDB6D /* TrackpadRemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EE9A835306792F44F6684C /* TrackpadRemoteApp.swift */; };
 		D26AE7A4EE05B9CEB2E0F7D8 /* TrackpadServerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4859DCE736F35F9470B6D4C3 /* TrackpadServerApp.swift */; };
+		DDA050D86129974C64B69C26 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BCB58844A9B3745D2CD0D42 /* SettingsView.swift */; };
 		E3EE9B8D074B54D77A107AD3 /* EventInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDAAAAF3104DE590AFF569FA /* EventInjector.swift */; };
 		F593EE0C2A3666787C57D8B6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF6DDD6AC41522FBDC6217E /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2D69C600F1886E4FA0C130DD /* PadSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadSettings.swift; sourceTree = "<group>"; };
 		4859DCE736F35F9470B6D4C3 /* TrackpadServerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadServerApp.swift; sourceTree = "<group>"; };
 		50EE9A835306792F44F6684C /* TrackpadRemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadRemoteApp.swift; sourceTree = "<group>"; };
 		675E954C434223DF36E62BDC /* ServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerManager.swift; sourceTree = "<group>"; };
 		846DB57D5D91FA0FC5466BD6 /* TrackpadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadView.swift; sourceTree = "<group>"; };
 		890806947BB9E168011462D1 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		8BCB58844A9B3745D2CD0D42 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9D90DCF8D7AE3B6EAEF89DBC /* TrackpadServer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrackpadServer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9CCE1427DE3737E6A9D8EB1 /* TrackpadRemote.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TrackpadRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputPacket.swift; sourceTree = "<group>"; };
@@ -56,6 +60,8 @@
 			children = (
 				890806947BB9E168011462D1 /* ConnectionManager.swift */,
 				EEF6DDD6AC41522FBDC6217E /* ContentView.swift */,
+				2D69C600F1886E4FA0C130DD /* PadSettings.swift */,
+				8BCB58844A9B3745D2CD0D42 /* SettingsView.swift */,
 				50EE9A835306792F44F6684C /* TrackpadRemoteApp.swift */,
 				846DB57D5D91FA0FC5466BD6 /* TrackpadView.swift */,
 			);
@@ -175,6 +181,8 @@
 				552CFD7F47489491CD27F7D6 /* ConnectionManager.swift in Sources */,
 				F593EE0C2A3666787C57D8B6 /* ContentView.swift in Sources */,
 				75081F6138C6CA138BB44AA1 /* InputPacket.swift in Sources */,
+				639D2731EE1F95C4A7E96DC7 /* PadSettings.swift in Sources */,
+				DDA050D86129974C64B69C26 /* SettingsView.swift in Sources */,
 				AEAEA9CC106D071EA15DDB6D /* TrackpadRemoteApp.swift in Sources */,
 				ABAA47B0BD45DD3EC003D78F /* TrackpadView.swift in Sources */,
 			);

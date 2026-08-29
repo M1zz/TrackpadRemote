@@ -7,7 +7,9 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var connection: ConnectionManager
+    @EnvironmentObject var settings: PadSettings
 
+    @State private var isShowingSettings = false
 
     private let padCornerRadius: CGFloat = 20
 
@@ -24,6 +26,9 @@ struct ContentView: View {
                 searchingView
             }
         }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(settings: settings)
+        }
         // Keep the screen awake while acting as a trackpad
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
@@ -38,6 +43,15 @@ struct ContentView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Spacer()
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.footnote)
+                }
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("설정")
+
                 Button("Disconnect") { connection.disconnect() }
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -47,7 +61,7 @@ struct ContentView: View {
 
             // Letterboxed to the Mac's aspect ratio: the pad is a scale model of
             // the desktop, so it must not be stretched to fill the phone.
-            TrackpadView(cornerRadius: padCornerRadius) { packet in
+            TrackpadView(cornerRadius: padCornerRadius, tuning: settings.tuning) { packet in
                 connection.send(packet)
             }
             .aspectRatio(connection.desktopAspect, contentMode: .fit)
@@ -84,36 +98,50 @@ struct ContentView: View {
     // MARK: - Status screens
 
     private var searchingView: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                statusView(icon: "magnifyingglass", title: "Looking for your Mac…", spinning: true)
+        // Centred when it fits, scrollable when the Mac list grows past the
+        // screen — which in landscape is only a few entries.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 16) {
+                    statusView(icon: "magnifyingglass", title: "Looking for your Mac…", spinning: true)
 
-                if !connection.discoveredMacs.isEmpty {
-                    VStack(spacing: 12) {
-                        ForEach(connection.discoveredMacs, id: \.self) { mac in
-                            Button {
-                                connection.invite(mac)
-                            } label: {
-                                Label(mac.displayName, systemImage: "laptopcomputer")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color(.secondarySystemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    if !connection.discoveredMacs.isEmpty {
+                        VStack(spacing: 12) {
+                            ForEach(connection.discoveredMacs, id: \.self) { mac in
+                                Button {
+                                    connection.invite(mac)
+                                } label: {
+                                    Label(mac.displayName, systemImage: "laptopcomputer")
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color(.secondarySystemBackground))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .frame(maxWidth: 420)
+                        .padding(.horizontal, 32)
                     }
-                    .frame(maxWidth: 420)
-                    .padding(.horizontal, 32)
-                }
 
-                Text("Make sure TrackpadServer is running on your Mac\nand both devices have Wi-Fi & Bluetooth on.")
-                    .font(.caption)
+                    Text("Make sure TrackpadServer is running on your Mac\nand both devices have Wi-Fi & Bluetooth on.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    // Reachable before a Mac is found: the pad's feel is worth
+                    // setting up while waiting, not only once connected.
+                    Button {
+                        isShowingSettings = true
+                    } label: {
+                        Label("설정", systemImage: "slider.horizontal.3")
+                            .font(.footnote)
+                    }
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+                .padding(.vertical, 24)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
         }
     }
 
