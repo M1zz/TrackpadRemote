@@ -2,30 +2,44 @@
 //  InputPacket.swift
 //  TrackpadRemote (Shared — add to BOTH iOS and macOS targets)
 //
-//  Fixed-size binary protocol: 1 byte type + 4 bytes Float32 dx + 4 bytes Float32 dy
-//  (9 bytes total, little-endian). Much cheaper than JSON for high-frequency move events.
+//  Fixed-size binary protocol: 1 byte type + 4 bytes Float32 a + 4 bytes Float32 b
+//  (9 bytes total, little-endian). Much cheaper than JSON for high-frequency
+//  pointer events.
 //
 
 import Foundation
 
 enum PacketType: UInt8 {
-    case move       = 0x01  // dx, dy = cursor delta in points
-    case leftClick  = 0x02
-    case rightClick = 0x03
-    case scroll     = 0x04  // dx, dy = scroll delta in pixels
-    case dragBegin  = 0x05  // left button down (drag start)
-    case dragEnd    = 0x06  // left button up (drag end)
+    /// iPhone → Mac. `a`, `b` = pointer position normalized to 0...1 over the
+    /// desktop rect. The pad is an absolute 1:1 map of the display, tablet-style,
+    /// so the phone sends where the finger *is*, not how far it moved.
+    case moveAbsolute = 0x01
+    /// iPhone → Mac. `a` = click count (1 single, 2 double, 3 triple).
+    case leftClick    = 0x02
+    /// iPhone → Mac. `a` = click count.
+    case rightClick   = 0x03
+    /// iPhone → Mac. `a`, `b` = scroll delta in pixels.
+    case scroll       = 0x04
+    /// iPhone → Mac. Left button down (drag start).
+    case dragBegin    = 0x05
+    /// iPhone → Mac. Left button up (drag end).
+    case dragEnd      = 0x06
+    /// Mac → iPhone. `a`, `b` = desktop width/height in points, so the phone can
+    /// letterbox its pad to the display's aspect ratio and keep the map undistorted.
+    case screenInfo   = 0x07
 }
 
 struct InputPacket {
     let type: PacketType
-    let dx: Float
-    let dy: Float
+    /// Meaning depends on `type` — see `PacketType`.
+    let a: Float
+    /// Meaning depends on `type` — see `PacketType`.
+    let b: Float
 
-    init(type: PacketType, dx: Float = 0, dy: Float = 0) {
+    init(type: PacketType, a: Float = 0, b: Float = 0) {
         self.type = type
-        self.dx = dx
-        self.dy = dy
+        self.a = a
+        self.b = b
     }
 
     // MARK: - Encoding
@@ -33,8 +47,8 @@ struct InputPacket {
     func encoded() -> Data {
         var data = Data(capacity: 9)
         data.append(type.rawValue)
-        var x = dx.bitPattern.littleEndian
-        var y = dy.bitPattern.littleEndian
+        var x = a.bitPattern.littleEndian
+        var y = b.bitPattern.littleEndian
         withUnsafeBytes(of: &x) { data.append(contentsOf: $0) }
         withUnsafeBytes(of: &y) { data.append(contentsOf: $0) }
         return data
@@ -53,8 +67,8 @@ struct InputPacket {
             .withUnsafeBytes { $0.load(as: UInt32.self) }
 
         self.type = type
-        self.dx = Float(bitPattern: UInt32(littleEndian: xBits))
-        self.dy = Float(bitPattern: UInt32(littleEndian: yBits))
+        self.a = Float(bitPattern: UInt32(littleEndian: xBits))
+        self.b = Float(bitPattern: UInt32(littleEndian: yBits))
     }
 }
 

@@ -8,10 +8,6 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var connection: ConnectionManager
 
-    /// Compact height == iPhone in landscape. The pad is used flat on a desk,
-    /// so in landscape we shrink the chrome and give the surface the screen.
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-    private var isLandscape: Bool { verticalSizeClass == .compact }
 
     var body: some View {
         ZStack {
@@ -45,17 +41,25 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal)
-            .padding(.top, isLandscape ? 2 : 8)
+            .padding(.top, 2)
 
+            // Letterboxed to the Mac's aspect ratio: the pad is a scale model of
+            // the desktop, so it must not be stretched to fill the phone.
             TrackpadView { packet in
                 connection.send(packet)
             }
+            .aspectRatio(connection.desktopAspect, contentMode: .fit)
             .background(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 20)
                     .fill(Color(.secondarySystemBackground))
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
+            )
             .overlay(alignment: .top) { topMarker }
-            .padding(isLandscape ? 8 : 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(8)
         }
     }
 
@@ -70,7 +74,7 @@ struct ContentView: View {
                 .kerning(2.5)
         }
         .foregroundStyle(.tertiary)
-        .padding(.top, 12)
+        .padding(.top, 8)
         // Never swallow a touch meant for the pad
         .allowsHitTesting(false)
     }
@@ -79,7 +83,7 @@ struct ContentView: View {
 
     private var searchingView: some View {
         ScrollView {
-            VStack(spacing: isLandscape ? 16 : 24) {
+            VStack(spacing: 16) {
                 statusView(icon: "magnifyingglass", title: "Looking for your Mac…", spinning: true)
 
                 if !connection.discoveredMacs.isEmpty {

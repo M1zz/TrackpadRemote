@@ -22,6 +22,10 @@ final class ConnectionManager: NSObject, ObservableObject {
     @Published var state: State = .searching
     @Published var discoveredMacs: [MCPeerID] = []
 
+    /// Desktop width / height, reported by the Mac. The pad is letterboxed to
+    /// this so the 1:1 map isn't stretched. Defaults to 16:10 until the Mac says.
+    @Published var desktopAspect: CGFloat = 1.6
+
     private let peerID = MCPeerID(displayName: UIDevice.current.name)
     // `send(_:)` is nonisolated so touch events can be forwarded without a main-actor hop.
     // MCSession is internally thread-safe, so unchecked access is fine here.
@@ -89,9 +93,9 @@ final class ConnectionManager: NSObject, ObservableObject {
     nonisolated func send(_ packet: InputPacket) {
         let reliable: Bool
         switch packet.type {
-        case .move, .scroll:
-            reliable = false   // lossy is fine; next delta supersedes
-        case .leftClick, .rightClick, .dragBegin, .dragEnd:
+        case .moveAbsolute, .scroll:
+            reliable = false   // lossy is fine; the next position supersedes
+        case .leftClick, .rightClick, .dragBegin, .dragEnd, .screenInfo:
             reliable = true    // must never be dropped
         }
 
@@ -138,7 +142,16 @@ extension ConnectionManager: MCSessionDelegate {
     }
 
     nonisolated func session(_ session: MCSession, didReceive data: Data,
-                             fromPeer peerID: MCPeerID) {}
+                             fromPeer peerID: MCPeerID) {
+        guard let packet = InputPacket(data: data),
+              packet.type == .screenInfo,
+              packet.a > 0, packet.b > 0 else { return }
+        let aspect = CGFloat(packet.a) / CGFloat(packet.b)
+        Task { @MainActor in
+            guard peerID == self.boundPeer else { return }
+            self.desktopAspect = aspect
+        }
+    }
     nonisolated func session(_ session: MCSession, didReceive stream: InputStream,
                              withName streamName: String, fromPeer peerID: MCPeerID) {}
     nonisolated func session(_ session: MCSession,

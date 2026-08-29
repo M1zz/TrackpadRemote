@@ -3,9 +3,15 @@
 //  TrackpadRemote (iOS)
 //
 //  UIKit touch surface wrapped for SwiftUI.
+//
+//  The surface is an ABSOLUTE map of the Mac desktop: the view is sized to the
+//  desktop's aspect ratio by the parent, so a touch at 30% across the pad puts
+//  the cursor at 30% across the screen. Tablet-style, not trackpad-style — there
+//  is no cursor acceleration and no "pick up and reposition".
+//
 //  Gestures:
-//    - 1-finger move        -> cursor move
-//    - 1-finger tap         -> left click
+//    - 1-finger touch/move  -> cursor jumps to and follows that point
+//    - 1-finger tap         -> left click (2nd/3rd fast tap -> double/triple click)
 //    - 2-finger tap         -> right click
 //    - 2-finger pan         -> scroll (natural direction)
 //    - double-tap + hold    -> drag (dragBegin ... move ... dragEnd)
@@ -23,7 +29,9 @@ struct TrackpadView: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ uiView: TrackpadUIView, context: Context) {}
+    func updateUIView(_ uiView: TrackpadUIView, context: Context) {
+        uiView.send = send
+    }
 }
 
 final class TrackpadUIView: UIView {
@@ -33,20 +41,27 @@ final class TrackpadUIView: UIView {
     // Tuning
     private let tapMaxDuration: TimeInterval = 0.25
     private let tapMaxMovement: CGFloat = 10
-    private let doubleTapWindow: TimeInterval = 0.3
+    /// Window for chaining taps into a double/triple click, and for starting a drag.
+    private let multiTapWindow: TimeInterval = 0.3
+    /// A follow-up tap this far from the previous one starts a new click chain.
+    private let multiTapMaxDistance: CGFloat = 44
+    private let maxClickCount: Float = 3
     private let scrollMultiplier: CGFloat = 2.0
 
     // Touch tracking state
     private var activeTouches = Set<UITouch>()
     private var maxSimultaneousTouches = 0
-    private var touchStartTime: TimeInterval = 0
-    private var touchStartPoint: CGPoint = .zero
+    private var gestureStartTime: TimeInterval = 0
+    private var gestureStartPoint: CGPoint = .zero
     private var totalMovement: CGFloat = 0
-    private var lastPoint: CGPoint?
     private var lastTwoFingerCentroid: CGPoint?
-    private var lastTapEndTime: TimeInterval = 0
     private var isDragging = false
     private var pendingDrag = false
+
+    // Click-chain state, kept across gestures
+    private var lastTapEndTime: TimeInterval = 0
+    private var lastTapPoint: CGPoint = .zero
+    private var clickCount: Float = 0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -63,31 +78,39 @@ final class TrackpadUIView: UIView {
         maxSimultaneousTouches = max(maxSimultaneousTouches, activeTouches.count)
 
         if activeTouches.count == 1, let touch = touches.first {
-            touchStartTime = touch.timestamp
-            touchStartPoint = touch.location(in: self)
+            let p = touch.location(in: self)
+            gestureStartTime = touch.timestamp
+            gestureStartPoint = p
             totalMovement = 0
-            lastPoint = touchStartPoint
 
-            // Double-tap-and-hold begins a drag
-            if touch.timestamp - lastTapEndTime < doubleTapWindow {
-                pendingDrag = true
+            // Continue the click chain only if this tap lands near the last one
+            // and soon enough; otherwise it's the start of a new chain.
+            let soonEnough = touch.timestamp - lastTapEndTime < multiTapWindow
+            let closeEnough = hypot(p.x - lastTapPoint.x, p.y - lastTapPoint.y) < multiTapMaxDistance
+            if !(soonEnough && closeEnough) {
+                clickCount = 0
             }
+            // Double-tap-and-hold begins a drag
+            pendingDrag = soonEnough && closeEnough && clickCount >= 1
+
+            sendPosition(p)
+
         } else if activeTouches.count == 2 {
             lastTwoFingerCentroid = centroid(of: activeTouches)
-            // A second finger cancels any pending drag
+            // A second finger cancels any pending drag and any click chain
             pendingDrag = false
+            clickCount = 0
         }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if activeTouches.count == 1, let touch = touches.first {
-            let p = touch.location(in: self)
-            guard let last = lastPoint else { lastPoint = p; return }
+            // Once a gesture has been multi-touch, don't warp the cursor to a
+            // leftover finger when the others lift.
+            guard maxSimultaneousTouches == 1 else { return }
 
-            let rawDx = p.x - last.x
-            let rawDy = p.y - last.y
-            totalMovement += abs(rawDx) + abs(rawDy)
-            lastPoint = p
+            let p = touch.location(in: self)
+            totalMovement += hypot(p.x - gestureStartPoint.x, p.y - gestureStartPoint.y)
 
             // Movement past threshold while a drag is pending = drag start
             if pendingDrag && !isDragging && totalMovement > tapMaxMovement {
@@ -96,8 +119,7 @@ final class TrackpadUIView: UIView {
                 send?(InputPacket(type: .dragBegin))
             }
 
-            let (dx, dy) = accelerated(dx: rawDx, dy: rawDy)
-            send?(InputPacket(type: .move, dx: Float(dx), dy: Float(dy)))
+            sendPosition(p)
 
         } else if activeTouches.count == 2 {
             let c = centroid(of: activeTouches)
@@ -106,37 +128,44 @@ final class TrackpadUIView: UIView {
             let dx = (c.x - last.x) * scrollMultiplier
             let dy = (c.y - last.y) * scrollMultiplier
             lastTwoFingerCentroid = c
-            totalMovement += abs(dx) + abs(dy)
+            totalMovement += hypot(dx, dy)
 
             // Natural scrolling: content follows fingers
-            send?(InputPacket(type: .scroll, dx: Float(dx), dy: Float(dy)))
+            send?(InputPacket(type: .scroll, a: Float(dx), b: Float(dy)))
         }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches { activeTouches.remove(t) }
+
+        // Fingers rarely lift in the same event; only judge the gesture once the
+        // last one is up, so a 2-finger tap isn't misread as a 1-finger tap.
         guard activeTouches.isEmpty, let touch = touches.first else {
-            // One of two fingers lifted — reset centroid so cursor doesn't jump
             lastTwoFingerCentroid = nil
             return
         }
-        defer { resetTouchState() }
+        defer { resetGestureState() }
 
         if isDragging {
             send?(InputPacket(type: .dragEnd))
+            clickCount = 0
             return
         }
 
-        let duration = touch.timestamp - touchStartTime
-        let isTap = duration < tapMaxDuration && totalMovement < tapMaxMovement
+        let duration = touch.timestamp - gestureStartTime
+        guard duration < tapMaxDuration, totalMovement < tapMaxMovement else {
+            clickCount = 0
+            return
+        }
 
-        if isTap {
-            if maxSimultaneousTouches >= 2 {
-                send?(InputPacket(type: .rightClick))
-            } else {
-                send?(InputPacket(type: .leftClick))
-                lastTapEndTime = touch.timestamp
-            }
+        if maxSimultaneousTouches >= 2 {
+            send?(InputPacket(type: .rightClick, a: 1))
+            clickCount = 0
+        } else {
+            clickCount = min(clickCount + 1, maxClickCount)
+            send?(InputPacket(type: .leftClick, a: clickCount))
+            lastTapEndTime = touch.timestamp
+            lastTapPoint = gestureStartPoint
         }
     }
 
@@ -144,15 +173,24 @@ final class TrackpadUIView: UIView {
         for t in touches { activeTouches.remove(t) }
         if activeTouches.isEmpty {
             if isDragging { send?(InputPacket(type: .dragEnd)) }
-            resetTouchState()
+            clickCount = 0
+            resetGestureState()
         }
     }
 
     // MARK: - Helpers
 
-    private func resetTouchState() {
+    /// Maps a point in the pad to 0...1 over the desktop. The pad is already
+    /// letterboxed to the desktop's aspect ratio, so this is a straight 1:1 map.
+    private func sendPosition(_ p: CGPoint) {
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let x = min(max(p.x / bounds.width, 0), 1)
+        let y = min(max(p.y / bounds.height, 0), 1)
+        send?(InputPacket(type: .moveAbsolute, a: Float(x), b: Float(y)))
+    }
+
+    private func resetGestureState() {
         maxSimultaneousTouches = 0
-        lastPoint = nil
         lastTwoFingerCentroid = nil
         isDragging = false
         pendingDrag = false
@@ -168,12 +206,5 @@ final class TrackpadUIView: UIView {
         }
         let n = CGFloat(touches.count)
         return CGPoint(x: x / n, y: y / n)
-    }
-
-    /// Pointer acceleration: slow moves ~1x for precision, fast flicks up to ~3.5x.
-    private func accelerated(dx: CGFloat, dy: CGFloat) -> (CGFloat, CGFloat) {
-        let speed = hypot(dx, dy)
-        let multiplier = 1.0 + min(speed / 8.0, 2.5)
-        return (dx * multiplier, dy * multiplier)
     }
 }

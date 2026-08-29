@@ -32,6 +32,9 @@ final class ServerManager: NSObject, ObservableObject {
     private var advertiser: MCNearbyServiceAdvertiser!
     private let injector = EventInjector()
 
+    /// Size of the rect the phone's pad maps onto, in points.
+    private var desktopSize: CGSize = .zero
+
     /// The single iPhone this Mac is bound to. Claimed the instant an invitation
     /// is accepted — not when the session reports `.connected` — so two phones
     /// inviting at the same moment can't both be let in and fight over the cursor.
@@ -66,11 +69,38 @@ final class ServerManager: NSObject, ObservableObject {
         advertiser.delegate = self
         advertiser.startAdvertisingPeer()
 
+        desktopSize = injector.refreshDesktopBounds().size
+
+        // Rearranging displays changes the rect the pad maps onto, so the phone
+        // has to be told to re-letterbox its surface.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.desktopSize = self.injector.refreshDesktopBounds().size
+                self.sendScreenInfo()
+            }
+        }
+
         hasAccessibilityPermission = EventInjector.checkPermission(prompt: false)
         // Prompt once on first launch if missing
         if !hasAccessibilityPermission {
             promptForAccessibility()
         }
+    }
+
+    /// Tells the phone how big the desktop is, so it can match its aspect ratio.
+    private func sendScreenInfo() {
+        guard !session.connectedPeers.isEmpty,
+              desktopSize.width > 0, desktopSize.height > 0 else { return }
+        let packet = InputPacket(type: .screenInfo,
+                                 a: Float(desktopSize.width),
+                                 b: Float(desktopSize.height))
+        try? session.send(packet.encoded(),
+                          toPeers: session.connectedPeers,
+                          with: .reliable)
     }
 
     func promptForAccessibility() {
@@ -143,6 +173,7 @@ extension ServerManager: MCSessionDelegate {
                 self.handshakeTimeout = nil
                 self.state = .connected(peerID.displayName)
                 self.advertiser.stopAdvertisingPeer()
+                self.sendScreenInfo()
                 // Refresh permission state — user may have granted it by now
                 self.hasAccessibilityPermission = EventInjector.checkPermission(prompt: false)
 

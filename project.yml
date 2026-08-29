@@ -27,8 +27,12 @@ targets:
       properties:
         CFBundleDisplayName: Trackpad
         UILaunchScreen: {}
+        # Landscape only: the pad is a 1:1 scale model of a landscape desktop,
+        # so a portrait surface would waste most of the screen.
         UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         NSLocalNetworkUsageDescription: Connects to your Mac over the local network to act as a trackpad.
