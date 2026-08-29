@@ -1,0 +1,67 @@
+name: TrackpadRemote
+options:
+  bundleIdPrefix: com.hyunholee
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+    macOS: "14.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_EMIT_LOC_STRINGS: YES
+
+targets:
+  TrackpadRemote:
+    type: application
+    platform: iOS
+    sources:
+      - path: iOS
+      - path: Shared
+    info:
+      path: Resources/TrackpadRemote-Info.plist
+      properties:
+        CFBundleDisplayName: Trackpad
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSLocalNetworkUsageDescription: Connects to your Mac over the local network to act as a trackpad.
+        NSBonjourServices:
+          - _trackpad-rc._tcp
+          - _trackpad-rc._udp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hyunholee.TrackpadRemote
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_PREVIEWS: YES
+
+  TrackpadServer:
+    type: application
+    platform: macOS
+    sources:
+      - path: macOS
+      - path: Shared
+    info:
+      path: Resources/TrackpadServer-Info.plist
+      properties:
+        CFBundleDisplayName: TrackpadServer
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+        NSLocalNetworkUsageDescription: Receives trackpad input from your iPhone over the local network.
+        NSBonjourServices:
+          - _trackpad-rc._tcp
+          - _trackpad-rc._udp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hyunholee.TrackpadServer
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_PREVIEWS: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: Resources/TrackpadServer.entitlements
