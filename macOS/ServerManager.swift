@@ -61,6 +61,8 @@ final class ServerManager: NSObject, ObservableObject {
     /// cursor and says nothing.
     private var permissionPoll: Task<Void, Never>?
 
+    private var hasPromptedThisRun = false
+
     private let handshakeTimeoutInterval: TimeInterval = 15
 
     override init() {
@@ -93,12 +95,11 @@ final class ServerManager: NSObject, ObservableObject {
             }
         }
 
+        // Deliberately no prompt here. The server sits in the menu bar doing
+        // nothing until a phone shows up, so asking at launch interrupts the user
+        // for a permission that is not needed yet.
         hasAccessibilityPermission = EventInjector.checkPermission(prompt: false)
         serverLog.info("accessibility at launch: \(self.hasAccessibilityPermission, privacy: .public)")
-        // Prompt once on first launch if missing
-        if !hasAccessibilityPermission {
-            promptForAccessibility()
-        }
         startPermissionPolling()
     }
 
@@ -133,6 +134,16 @@ final class ServerManager: NSObject, ObservableObject {
 
     func promptForAccessibility() {
         hasAccessibilityPermission = EventInjector.checkPermission(prompt: true)
+    }
+
+    /// Asks only at the moment input would actually be dropped — a phone has
+    /// connected and is about to send events — and only once per run, so
+    /// dismissing it doesn't turn into a loop.
+    private func promptForAccessibilityIfNeeded() {
+        guard !hasAccessibilityPermission, !hasPromptedThisRun else { return }
+        hasPromptedThisRun = true
+        serverLog.info("prompting for accessibility: a phone connected without it")
+        promptForAccessibility()
     }
 
     /// The system prompt only appears once per binary; this always works.
@@ -213,6 +224,8 @@ extension ServerManager: MCSessionDelegate {
                 self.sendScreenInfo()
                 // Refresh permission state — user may have granted it by now
                 self.hasAccessibilityPermission = EventInjector.checkPermission(prompt: false)
+                // Now it is genuinely needed: input is about to arrive.
+                self.promptForAccessibilityIfNeeded()
 
             case .notConnected:
                 serverLog.info("disconnected from \(peerID.displayName, privacy: .public)")

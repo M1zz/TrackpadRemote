@@ -96,10 +96,15 @@ log stream --predicate 'subsystem == "com.hyunholee.TrackpadServer"' --level deb
 
 ### 실행 순서
 
-1. Mac에서 TrackpadServer 실행 → 손쉬운 사용(Accessibility) 권한 허용
-   (System Settings → Privacy & Security → Accessibility)
+1. Mac에서 TrackpadServer 실행 (메뉴바에만 뜬다)
 2. iPhone에서 TrackpadRemote 실행 → 로컬 네트워크 권한 허용
 3. 자동으로 발견/연결됨 (Mac이 1대면 자동 연결, 여러 대면 목록에서 선택)
+4. 접근성 권한이 없으면 **이 시점에** 요청한다 — 실행할 때가 아니라
+
+접근성 프롬프트는 아이폰이 붙는 순간, 실행당 한 번만 뜬다. 권한이 이미 켜져
+있으면 뜨지 않는다. 서버는 아이폰이 오기 전까지 아무것도 안 하므로 실행 시점에
+묻는 것은 아직 필요하지도 않은 권한으로 사용자를 붙잡는 셈이다. 미리 주고 싶으면
+메뉴바 메뉴에서 직접 열 수 있다.
 
 ## 매핑
 
