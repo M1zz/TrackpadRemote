@@ -26,11 +26,15 @@ import UIKit
 struct TrackpadView: UIViewRepresentable {
     /// Matches the surface's background shape so ripples are clipped to it.
     let cornerRadius: CGFloat
+    /// Cursor comes from aiming the phone rather than sliding a finger. Taps,
+    /// scrolls and drags work the same either way; only the source of motion moves.
+    let isAirMouse: Bool
     let send: (InputPacket) -> Void
 
     func makeUIView(context: Context) -> TrackpadUIView {
         let view = TrackpadUIView()
         view.send = send
+        view.isAirMouse = isAirMouse
         view.layer.cornerRadius = cornerRadius
         view.layer.masksToBounds = true
         return view
@@ -38,13 +42,25 @@ struct TrackpadView: UIViewRepresentable {
 
     func updateUIView(_ uiView: TrackpadUIView, context: Context) {
         uiView.send = send
+        uiView.isAirMouse = isAirMouse
         uiView.layer.cornerRadius = cornerRadius
+    }
+
+    static func dismantleUIView(_ uiView: TrackpadUIView, coordinator: ()) {
+        uiView.releaseClutch()
     }
 }
 
 final class TrackpadUIView: UIView {
 
     var send: ((InputPacket) -> Void)?
+
+    var isAirMouse = false {
+        didSet {
+            guard isAirMouse != oldValue else { return }
+            releaseClutch()
+        }
+    }
 
     // Tuning
     private let tapMaxDuration: TimeInterval = 0.25
@@ -60,6 +76,8 @@ final class TrackpadUIView: UIView {
     private let maxGain: CGFloat = 2.6
     /// Points per event at which acceleration reaches maxGain.
     private let accelerationDivisor: CGFloat = 9.0
+    /// Aim travel (in desktop sweeps) before a pending drag commits.
+    private let airDragThreshold: Double = 0.01
     private let rippleRadius: CGFloat = 26
     private let rippleDuration: CFTimeInterval = 0.35
 
@@ -79,10 +97,24 @@ final class TrackpadUIView: UIView {
     private var lastTapPoint: CGPoint = .zero
     private var clickCount: Float = 0
 
+    private let motion = MotionPointer()
+    private var isClutchEngaged = false
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         isMultipleTouchEnabled = true
         backgroundColor = .clear
+
+        motion.send = { [weak self] dx, dy in
+            guard let self else { return }
+            // Aiming can start a pending drag the same way sliding a finger does.
+            if self.pendingDrag && !self.isDragging && self.motion.travel > self.airDragThreshold {
+                self.isDragging = true
+                self.pendingDrag = false
+                self.send?(InputPacket(type: .dragBegin))
+            }
+            self.send?(InputPacket(type: .moveRelative, a: dx, b: dy))
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -114,12 +146,15 @@ final class TrackpadUIView: UIView {
 
             // Deliberately no packet here: the cursor stays where the user left it.
             lastPoint = p
+            engageClutchIfNeeded()
 
         } else if activeTouches.count == 2 {
             lastTwoFingerCentroid = centroid(of: activeTouches)
             // A second finger cancels any pending drag and any click chain
             pendingDrag = false
             clickCount = 0
+            // Two fingers mean scrolling, not aiming — stop steering the cursor.
+            releaseClutch()
         }
     }
 
@@ -143,7 +178,11 @@ final class TrackpadUIView: UIView {
                 send?(InputPacket(type: .dragBegin))
             }
 
-            sendDelta(dx: rawDx, dy: rawDy)
+            // In air mouse mode the finger is only the clutch; the cursor is
+            // steered by aiming, so sliding it must not also move the pointer.
+            if !isAirMouse {
+                sendDelta(dx: rawDx, dy: rawDy)
+            }
 
         } else if activeTouches.count == 2 {
             let c = centroid(of: activeTouches)
@@ -168,6 +207,7 @@ final class TrackpadUIView: UIView {
             lastTwoFingerCentroid = nil
             return
         }
+        releaseClutch()
         defer { resetGestureState() }
 
         if isDragging {
@@ -196,10 +236,28 @@ final class TrackpadUIView: UIView {
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches { activeTouches.remove(t) }
         if activeTouches.isEmpty {
+            releaseClutch()
             if isDragging { send?(InputPacket(type: .dragEnd)) }
             clickCount = 0
             resetGestureState()
         }
+    }
+
+    // MARK: - Clutch
+
+    /// Motion only steers the cursor while exactly one finger rests on the pad.
+    /// Sensors stop the moment it lifts, which is what keeps the cursor still
+    /// when the phone is set down — and keeps the gyro off the battery.
+    private func engageClutchIfNeeded() {
+        guard isAirMouse, !isClutchEngaged else { return }
+        isClutchEngaged = true
+        motion.engage()
+    }
+
+    func releaseClutch() {
+        guard isClutchEngaged else { return }
+        isClutchEngaged = false
+        motion.disengage()
     }
 
     // MARK: - Touch feedback
