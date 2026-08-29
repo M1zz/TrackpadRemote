@@ -32,7 +32,9 @@ final class ServerManager: NSObject, ObservableObject {
     private let peerID = MCPeerID(displayName: Host.current().localizedName ?? "Mac")
     private var session: MCSession!
     private var advertiser: MCNearbyServiceAdvertiser!
-    private let injector = EventInjector()
+    // Reached from the nonisolated packet callback, which must not hop to the
+    // main actor for every cursor delta.
+    private nonisolated let injector = EventInjector()
 
     /// Size of the rect the phone's pad maps onto, in points.
     private var desktopSize: CGSize = .zero

@@ -14,7 +14,10 @@ import os
 
 let injectorLog = Logger(subsystem: "com.hyunholee.TrackpadServer", category: "injector")
 
-final class EventInjector {
+/// Safe to hand across isolation domains: every mutable field is touched only
+/// inside `queue`, and the screen layout lives behind a lock. The compiler can't
+/// see that, so the conformance is unchecked.
+final class EventInjector: @unchecked Sendable {
 
     /// Serial queue so events are injected in arrival order.
     private let queue = DispatchQueue(label: "trackpad.event-injector", qos: .userInteractive)
@@ -141,12 +144,12 @@ final class EventInjector {
         // Delta fields help apps (games, etc.) that read relative motion
         event?.setIntegerValueField(.mouseEventDeltaX, value: Int64(delta.x.rounded()))
         event?.setIntegerValueField(.mouseEventDeltaY, value: Int64(delta.y.rounded()))
-        let posted = event?.post(tap: .cghidEventTap)
+        event?.post(tap: .cghidEventTap)
 
         moveCount += 1
         if moveCount % 30 == 1 {
             let landed = CGEvent(source: nil)?.location ?? .zero
-            injectorLog.debug("move #\(self.moveCount, privacy: .public) delta(\(delta.x, privacy: .public), \(delta.y, privacy: .public)) -> target(\(target.x, privacy: .public), \(target.y, privacy: .public)); cursor is now (\(landed.x, privacy: .public), \(landed.y, privacy: .public)); event built: \(event != nil, privacy: .public), posted: \(posted != nil, privacy: .public)")
+            injectorLog.debug("move #\(self.moveCount, privacy: .public) delta(\(delta.x, privacy: .public), \(delta.y, privacy: .public)) -> target(\(target.x, privacy: .public), \(target.y, privacy: .public)); cursor is now (\(landed.x, privacy: .public), \(landed.y, privacy: .public)); event built: \(event != nil, privacy: .public)")
         }
     }
 
