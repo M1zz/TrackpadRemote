@@ -11,6 +11,8 @@ import MultipeerConnectivity
 import AppKit
 import os
 
+private let serverLog = Logger(subsystem: "com.hyunholee.TrackpadServer", category: "server")
+
 @MainActor
 final class ServerManager: NSObject, ObservableObject {
 
@@ -53,6 +55,12 @@ final class ServerManager: NSObject, ObservableObject {
     /// Releases `boundPeer` if an accepted phone never finishes the handshake.
     private var handshakeTimeout: Task<Void, Never>?
 
+    /// Accessibility can be revoked at any time — and every rebuild of an
+    /// unsigned binary silently drops the grant — so the state is polled rather
+    /// than sampled once at launch. Without it the app just stops moving the
+    /// cursor and says nothing.
+    private var permissionPoll: Task<Void, Never>?
+
     private let handshakeTimeoutInterval: TimeInterval = 15
 
     override init() {
@@ -68,6 +76,7 @@ final class ServerManager: NSObject, ObservableObject {
                                                serviceType: ServiceConfig.serviceType)
         advertiser.delegate = self
         advertiser.startAdvertisingPeer()
+        serverLog.info("advertising as \(self.peerID.displayName, privacy: .public) on \(ServiceConfig.serviceType, privacy: .public)")
 
         desktopSize = injector.refreshDesktopBounds().size
 
@@ -85,16 +94,35 @@ final class ServerManager: NSObject, ObservableObject {
         }
 
         hasAccessibilityPermission = EventInjector.checkPermission(prompt: false)
+        serverLog.info("accessibility at launch: \(self.hasAccessibilityPermission, privacy: .public)")
         // Prompt once on first launch if missing
         if !hasAccessibilityPermission {
             promptForAccessibility()
+        }
+        startPermissionPolling()
+    }
+
+    private func startPermissionPolling() {
+        permissionPoll = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard let self else { return }
+                let trusted = EventInjector.checkPermission(prompt: false)
+                guard trusted != self.hasAccessibilityPermission else { continue }
+                self.hasAccessibilityPermission = trusted
+                serverLog.info("accessibility changed to \(trusted, privacy: .public)")
+            }
         }
     }
 
     /// Tells the phone how big the desktop is, so it can match its aspect ratio.
     private func sendScreenInfo() {
         guard !session.connectedPeers.isEmpty,
-              desktopSize.width > 0, desktopSize.height > 0 else { return }
+              desktopSize.width > 0, desktopSize.height > 0 else {
+            serverLog.error("screenInfo not sent: peers=\(self.session.connectedPeers.count, privacy: .public) size=\(self.desktopSize.debugDescription, privacy: .public)")
+            return
+        }
+        serverLog.info("sending screenInfo \(self.desktopSize.debugDescription, privacy: .public)")
         let packet = InputPacket(type: .screenInfo,
                                  a: Float(desktopSize.width),
                                  b: Float(desktopSize.height))
@@ -105,6 +133,12 @@ final class ServerManager: NSObject, ObservableObject {
 
     func promptForAccessibility() {
         hasAccessibilityPermission = EventInjector.checkPermission(prompt: true)
+    }
+
+    /// The system prompt only appears once per binary; this always works.
+    func openAccessibilitySettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        NSWorkspace.shared.open(url)
     }
 
     func disconnect() {
@@ -133,12 +167,14 @@ extension ServerManager: MCNearbyServiceAdvertiserDelegate {
             // One phone at a time. A second phone is turned away rather than
             // silently added to the session.
             guard self.boundPeer == nil || self.boundPeer == peerID else {
+                serverLog.info("rejected \(peerID.displayName, privacy: .public): already bound")
                 invitationHandler(false, nil)
                 return
             }
 
             // Local network, encrypted session — accept.
             // (If you want pairing confirmation, show an NSAlert here instead.)
+            serverLog.info("accepted invitation from \(peerID.displayName, privacy: .public)")
             self.boundPeer = peerID
             self.advertiser.stopAdvertisingPeer()
             invitationHandler(true, self.session)
@@ -171,6 +207,7 @@ extension ServerManager: MCSessionDelegate {
                 }
                 self.handshakeTimeout?.cancel()
                 self.handshakeTimeout = nil
+                serverLog.info("connected to \(peerID.displayName, privacy: .public)")
                 self.state = .connected(peerID.displayName)
                 self.advertiser.stopAdvertisingPeer()
                 self.sendScreenInfo()
@@ -178,6 +215,7 @@ extension ServerManager: MCSessionDelegate {
                 self.hasAccessibilityPermission = EventInjector.checkPermission(prompt: false)
 
             case .notConnected:
+                serverLog.info("disconnected from \(peerID.displayName, privacy: .public)")
                 guard peerID == self.boundPeer else { return }
                 self.releaseBinding()
 
@@ -193,8 +231,14 @@ extension ServerManager: MCSessionDelegate {
     nonisolated func session(_ session: MCSession, didReceive data: Data,
                              fromPeer peerID: MCPeerID) {
         // Only the bound phone may move this Mac's cursor.
-        guard acceptedPeer.withLock({ $0 == peerID }) else { return }
-        guard let packet = InputPacket(data: data) else { return }
+        guard acceptedPeer.withLock({ $0 == peerID }) else {
+            serverLog.error("packet dropped: \(peerID.displayName, privacy: .public) is not the bound peer")
+            return
+        }
+        guard let packet = InputPacket(data: data) else {
+            serverLog.error("undecodable packet, \(data.count, privacy: .public) bytes")
+            return
+        }
         // CGEvent posting is thread-safe; keep it off the main thread entirely.
         injector.handle(packet)
     }

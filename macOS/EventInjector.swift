@@ -12,6 +12,8 @@ import CoreGraphics
 import AppKit
 import os
 
+let injectorLog = Logger(subsystem: "com.hyunholee.TrackpadServer", category: "injector")
+
 final class EventInjector {
 
     /// Serial queue so events are injected in arrival order.
@@ -24,6 +26,8 @@ final class EventInjector {
 
     private var position: CGPoint = .zero
     private var isDragging = false
+    /// Moves arrive at touch rate; log a sample rather than every one.
+    private var moveCount = 0
 
     init() {
         position = CGEvent(source: nil)?.location ?? .zero
@@ -63,6 +67,7 @@ final class EventInjector {
     func refreshDesktopBounds() -> CGRect {
         let bounds = Self.currentDesktopBounds()
         desktop.withLock { $0 = bounds }
+        injectorLog.info("desktop bounds: \(bounds.debugDescription, privacy: .public)")
         return bounds
     }
 
@@ -94,7 +99,10 @@ final class EventInjector {
 
     private func move(toNormalized p: CGPoint) {
         let rect = desktop.withLock { $0 }
-        guard rect.width > 0, rect.height > 0 else { return }
+        guard rect.width > 0, rect.height > 0 else {
+            injectorLog.error("move dropped: desktop bounds are empty")
+            return
+        }
 
         let target = CGPoint(
             x: rect.minX + min(max(p.x, 0), 1) * (rect.width - 1),
@@ -111,13 +119,20 @@ final class EventInjector {
         // Delta fields help apps (games, etc.) that read relative motion
         event?.setIntegerValueField(.mouseEventDeltaX, value: Int64(delta.x.rounded()))
         event?.setIntegerValueField(.mouseEventDeltaY, value: Int64(delta.y.rounded()))
-        event?.post(tap: .cghidEventTap)
+        let posted = event?.post(tap: .cghidEventTap)
+
+        moveCount += 1
+        if moveCount % 30 == 1 {
+            let landed = CGEvent(source: nil)?.location ?? .zero
+            injectorLog.debug("move #\(self.moveCount, privacy: .public) norm(\(p.x, privacy: .public), \(p.y, privacy: .public)) -> target(\(target.x, privacy: .public), \(target.y, privacy: .public)); cursor is now (\(landed.x, privacy: .public), \(landed.y, privacy: .public)); event built: \(event != nil, privacy: .public), posted: \(posted != nil, privacy: .public)")
+        }
     }
 
     /// `count` is decided on the phone, which knows the real tap timing, rather
     /// than re-guessed here from packet arrival times.
     private func click(button: CGMouseButton, count: Int64) {
         let clickState = max(1, min(count, 3))
+        injectorLog.info("click \(button == .left ? "left" : "right", privacy: .public) x\(clickState, privacy: .public) at (\(self.position.x, privacy: .public), \(self.position.y, privacy: .public))")
 
         let (downType, upType): (CGEventType, CGEventType) = button == .left
             ? (.leftMouseDown, .leftMouseUp)
