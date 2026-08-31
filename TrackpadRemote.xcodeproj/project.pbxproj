@@ -12,16 +12,20 @@
 		75081F6138C6CA138BB44AA1 /* InputPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */; };
 		7CEAA3C74D2DB1EB514E7F4F /* ServerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 675E954C434223DF36E62BDC /* ServerManager.swift */; };
 		956DA37122244AA3E2D0C283 /* InputPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF3C34B1EC97BB56A75D09D /* InputPacket.swift */; };
+		98609648EA73766CF8D126D5 /* Assets-macOS.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3415F9AAFB2A8F435DE01BEF /* Assets-macOS.xcassets */; };
 		ABAA47B0BD45DD3EC003D78F /* TrackpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 846DB57D5D91FA0FC5466BD6 /* TrackpadView.swift */; };
 		AEAEA9CC106D071EA15DDB6D /* TrackpadRemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EE9A835306792F44F6684C /* TrackpadRemoteApp.swift */; };
 		D26AE7A4EE05B9CEB2E0F7D8 /* TrackpadServerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4859DCE736F35F9470B6D4C3 /* TrackpadServerApp.swift */; };
 		DDA050D86129974C64B69C26 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BCB58844A9B3745D2CD0D42 /* SettingsView.swift */; };
+		DF806B8DDD164D35126AC648 /* Assets-iOS.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 43ADF6A9C78EFCC0B90395BA /* Assets-iOS.xcassets */; };
 		E3EE9B8D074B54D77A107AD3 /* EventInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDAAAAF3104DE590AFF569FA /* EventInjector.swift */; };
 		F593EE0C2A3666787C57D8B6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF6DDD6AC41522FBDC6217E /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2D69C600F1886E4FA0C130DD /* PadSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadSettings.swift; sourceTree = "<group>"; };
+		3415F9AAFB2A8F435DE01BEF /* Assets-macOS.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Assets-macOS.xcassets"; sourceTree = "<group>"; };
+		43ADF6A9C78EFCC0B90395BA /* Assets-iOS.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Assets-iOS.xcassets"; sourceTree = "<group>"; };
 		4859DCE736F35F9470B6D4C3 /* TrackpadServerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadServerApp.swift; sourceTree = "<group>"; };
 		50EE9A835306792F44F6684C /* TrackpadRemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadRemoteApp.swift; sourceTree = "<group>"; };
 		675E954C434223DF36E62BDC /* ServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerManager.swift; sourceTree = "<group>"; };
@@ -81,9 +85,19 @@
 			children = (
 				6D877E5D449B6BD6647F560F /* iOS */,
 				66E1B165AFBB435BB864A9F7 /* macOS */,
+				F0ED606FF6BF4338AA886AA8 /* Resources */,
 				733ADDCB94E04B99FD893011 /* Shared */,
 				098FF1EB6EA2704F6AA2A7A9 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		F0ED606FF6BF4338AA886AA8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				43ADF6A9C78EFCC0B90395BA /* Assets-iOS.xcassets */,
+				3415F9AAFB2A8F435DE01BEF /* Assets-macOS.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -94,6 +108,7 @@
 			buildConfigurationList = DB25F55726F858D86E4F5DA5 /* Build configuration list for PBXNativeTarget "TrackpadServer" */;
 			buildPhases = (
 				65308D77ED95EAD4F773680B /* Sources */,
+				01EDE050701FD80E0D777835 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -111,6 +126,7 @@
 			buildConfigurationList = 879D52BCD1C3F1EE581CD490 /* Build configuration list for PBXNativeTarget "TrackpadRemote" */;
 			buildPhases = (
 				8C737C0E2EE2BD181E1AAA57 /* Sources */,
+				6375B366D1DE0402C43884E3 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -161,6 +177,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		01EDE050701FD80E0D777835 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98609648EA73766CF8D126D5 /* Assets-macOS.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6375B366D1DE0402C43884E3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DF806B8DDD164D35126AC648 /* Assets-iOS.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		65308D77ED95EAD4F773680B /* Sources */ = {

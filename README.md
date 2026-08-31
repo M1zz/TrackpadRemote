@@ -51,6 +51,27 @@ xcodegen generate
 
 Info.plist(`Resources/*-Info.plist`)도 `project.yml`에서 생성되므로 직접 편집하지 말 것.
 
+### 앱 아이콘 재생성
+
+아이콘 PNG는 손으로 그린 게 아니라 `Tools/make_app_icons.py`가 그린다. 아트워크를
+한 번만(1024pt를 4배 슈퍼샘플링해서) 렌더한 뒤 각 크기로 축소하므로, 16pt Finder
+크기까지 같은 원본에서 나온다. 디자인을 고쳤으면 스크립트를 고치고 다시 돌릴 것 —
+`.xcassets` 안의 PNG를 직접 갈아끼우지 말 것.
+
+```bash
+python3 -m pip install Pillow   # 최초 1회
+python3 Tools/make_app_icons.py
+```
+
+| 카탈로그 | 타깃 | 담긴 것 |
+|---|---|---|
+| `Resources/Assets-iOS.xcassets` | `TrackpadRemote` | 1024 universal 한 장 (나머지는 Xcode가 파생) |
+| `Resources/Assets-macOS.xcassets` | `TrackpadServer` | 16~512@2x 전체 세트 |
+
+iOS는 정사각 full-bleed로 내보내고(마스킹은 시스템이 한다), macOS는 1024 캔버스
+안에 824pt 스퀘어클로 인셋 + 그림자를 직접 그려 넣는다 — 플랫폼마다 요구하는
+프레이밍이 달라서 마스터 두 장이 필요하다.
+
 ### 접근성 권한이 자꾸 풀린다면
 
 **서버 타깃은 반드시 안정적인 서명 identity로 빌드해야 한다.** ad-hoc 서명
