@@ -17,6 +17,10 @@
 //    - 1-finger tap         -> left click (2nd/3rd fast tap -> double/triple click)
 //    - 2-finger tap         -> right click
 //    - 2-finger pan         -> scroll (natural direction)
+//    - 2-finger pinch       -> zoom in/out (stepped)
+//    - 3-finger tap         -> look up
+//    - 3/4-finger swipe     -> Mission Control, App Exposé, spaces
+//    - 4-finger pinch       -> Launchpad (together) / Show Desktop (apart)
 //    - double-tap + hold    -> drag (dragBegin ... move ... dragEnd)
 //
 
@@ -66,6 +70,8 @@ final class TrackpadUIView: UIView {
     /// Evidence (in points) to accumulate before committing a two-finger gesture
     /// to scrolling or pinching. Too low and a slightly uneven scroll zooms.
     private let twoFingerDecisionThreshold: CGFloat = 24
+    /// Change in four-finger spread, in points, that counts as a thumb pinch.
+    private let fourFingerPinchThreshold: CGFloat = 30
     private let rippleRadius: CGFloat = 26
     private let rippleDuration: CFTimeInterval = 0.35
 
@@ -89,8 +95,10 @@ final class TrackpadUIView: UIView {
     private var lastSpread: CGFloat?
     private var pinchAccumulator: CGFloat = 0
 
-    /// Three-finger swipes fire once per gesture, not once per frame.
+    /// Three- and four-finger gestures fire once per gesture, not once per frame.
     private var threeFingerStart: CGPoint?
+    private var fourFingerStart: CGPoint?
+    private var fourFingerStartSpread: CGFloat = 0
     private var didFireSwipe = false
 
     // Click-chain state, kept across gestures
@@ -109,6 +117,12 @@ final class TrackpadUIView: UIView {
     // MARK: - Touch lifecycle
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Several fingers can land in the same event, skipping the one-finger
+        // branch below; the tap timer still has to start with the first of them.
+        if activeTouches.isEmpty, let touch = touches.first {
+            gestureStartTime = touch.timestamp
+            totalMovement = 0
+        }
         for t in touches {
             activeTouches.insert(t)
             showRipple(at: t.location(in: self))
@@ -152,6 +166,12 @@ final class TrackpadUIView: UIView {
             twoFingerMode = .undecided
             lastTwoFingerCentroid = nil
             lastSpread = nil
+
+        } else if activeTouches.count == 4 {
+            fourFingerStart = centroid(of: activeTouches)
+            fourFingerStartSpread = spread(of: activeTouches)
+            // The first three fingers were only on their way to four.
+            threeFingerStart = nil
         }
     }
 
@@ -178,10 +198,16 @@ final class TrackpadUIView: UIView {
             sendDelta(dx: rawDx, dy: rawDy)
 
         } else if activeTouches.count == 2 {
+            // Two fingers left over from a three- or four-finger gesture must not
+            // start scrolling or zooming while they lift.
+            guard maxSimultaneousTouches == 2 else { return }
             handleTwoFingers()
 
         } else if activeTouches.count == 3 {
             handleThreeFingers()
+
+        } else if activeTouches.count == 4 {
+            handleFourFingers()
         }
     }
 
@@ -241,11 +267,39 @@ final class TrackpadUIView: UIView {
 
         guard max(abs(dx), abs(dy)) > tuning.swipeThreshold else { return }
         didFireSwipe = true
+        send?(InputPacket(type: .swipe, a: Float(swipeDirection(dx: dx, dy: dy).rawValue)))
+    }
 
-        let direction: SwipeDirection = abs(dx) > abs(dy)
+    /// Four fingers moving together are the same swipe as three — macOS lets
+    /// people put Mission Control and spaces on either count, so both work.
+    /// Changing their spread is the thumb pinch: together for Launchpad, apart
+    /// for the desktop.
+    private func handleFourFingers() {
+        guard !didFireSwipe, let start = fourFingerStart else { return }
+        let c = centroid(of: activeTouches)
+        let dx = c.x - start.x
+        let dy = c.y - start.y
+        let travel = max(abs(dx), abs(dy))
+        let spreadChange = spread(of: activeTouches) - fourFingerStartSpread
+        totalMovement += abs(dx) + abs(dy) + abs(spreadChange)
+
+        // A thumb closing in drags the centroid along, and a swipe wobbles the
+        // spread, so each must beat the other as well as its own threshold.
+        if abs(spreadChange) > fourFingerPinchThreshold, abs(spreadChange) > travel {
+            didFireSwipe = true
+            let action: SystemAction = spreadChange < 0 ? .launchpad : .showDesktop
+            send?(InputPacket(type: .systemAction, a: Float(action.rawValue)))
+        } else if tuning.swipeEnabled, travel > tuning.swipeThreshold, travel > abs(spreadChange) {
+            didFireSwipe = true
+            send?(InputPacket(type: .swipe, a: Float(swipeDirection(dx: dx, dy: dy).rawValue)))
+        }
+    }
+
+    /// The dominant axis wins.
+    private func swipeDirection(dx: CGFloat, dy: CGFloat) -> SwipeDirection {
+        abs(dx) > abs(dy)
             ? (dx > 0 ? .right : .left)
             : (dy > 0 ? .down : .up)
-        send?(InputPacket(type: .swipe, a: Float(direction.rawValue)))
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -271,14 +325,21 @@ final class TrackpadUIView: UIView {
             return
         }
 
-        if maxSimultaneousTouches == 2 {
-            send?(InputPacket(type: .rightClick, a: 1))
-            clickCount = 0
-        } else {
+        switch maxSimultaneousTouches {
+        case 1:
             clickCount = min(clickCount + 1, maxClickCount)
             send?(InputPacket(type: .leftClick, a: clickCount))
             lastTapEndTime = touch.timestamp
             lastTapPoint = gestureStartPoint
+        case 2:
+            send?(InputPacket(type: .rightClick, a: 1))
+            clickCount = 0
+        case 3:
+            send?(InputPacket(type: .systemAction, a: Float(SystemAction.lookUp.rawValue)))
+            clickCount = 0
+        default:
+            // A Mac trackpad gives a four-finger tap no meaning either.
+            clickCount = 0
         }
     }
 
@@ -366,6 +427,8 @@ final class TrackpadUIView: UIView {
         pinchEvidence = 0
         pinchAccumulator = 0
         threeFingerStart = nil
+        fourFingerStart = nil
+        fourFingerStartSpread = 0
         didFireSwipe = false
         isDragging = false
         pendingDrag = false

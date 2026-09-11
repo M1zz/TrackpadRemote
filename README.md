@@ -2,21 +2,62 @@
 
 iPhone을 Mac의 무선 트랙패드로 쓰는 앱. MultipeerConnectivity 기반, IP 입력 없이 자동 발견/연결.
 
+| 페이지 | 주소 |
+|---|---|
+| 다운로드 (iPhone 앱 + Mac 앱) | https://m1zz.github.io/TrackpadRemote/ |
+| 지원 | https://m1zz.github.io/TrackpadRemote/support/ |
+| 개인정보 처리방침 | https://m1zz.github.io/TrackpadRemote/privacy/ |
+
 ## 구성
 
 ```
 TrackpadRemote/
-├── Shared/InputPacket.swift      # 양쪽 타깃 모두에 추가 (9바이트 바이너리 프로토콜)
+├── Shared/
+│   ├── InputPacket.swift         # 양쪽 타깃 모두에 추가 (9바이트 바이너리 프로토콜)
+│   └── CompanionLinks.swift      # 다른 쪽 앱을 받는 페이지 주소
 ├── iOS/                          # iPhone 클라이언트 (SwiftUI)
 │   ├── TrackpadRemoteApp.swift
 │   ├── ConnectionManager.swift   # MC browser + 패킷 전송
 │   ├── TrackpadView.swift        # 터치 캡처 + 제스처
 │   └── ContentView.swift
-└── macOS/                        # Mac 서버 (메뉴바 앱)
-    ├── TrackpadServerApp.swift
-    ├── ServerManager.swift       # MC advertiser + 패킷 수신
-    └── EventInjector.swift       # CGEvent 주입
+├── macOS/                        # Mac 서버 (메뉴바 앱)
+│   ├── TrackpadServerApp.swift
+│   ├── ServerManager.swift       # MC advertiser + 패킷 수신
+│   ├── EventInjector.swift       # CGEvent 주입
+│   └── CompanionWindow.swift     # "iPhone 앱 받기" QR 창
+└── docs/                         # GitHub Pages: 다운로드 · 지원 · 개인정보 처리방침
 ```
+
+## 앱 두 개가 한 쌍이다
+
+| 앱 | 기기 | 배포 |
+|---|---|---|
+| **TrackpadRemote** | iPhone | App Store |
+| **TrackpadServer** | Mac (메뉴 막대) | GitHub Releases — 샌드박스를 켤 수 없어 Mac App Store 불가 |
+
+한쪽만 설치하면 아무 일도 일어나지 않는다. 앱이 그걸 스스로 말하지 않으면 사용자는
+고장난 줄 안다. 그래서 **양쪽 앱 모두 다른 쪽 앱을 받는 창구를 갖고 있다.**
+
+- **iPhone → Mac**: Mac을 찾는 화면에 "Mac에도 앱이 필요해요" 카드, 설정에 "Mac 앱"
+  섹션. 둘 다 공유 시트로 다운로드 링크를 보낸다 — AirDrop으로 Mac에 보내면 Mac
+  브라우저에서 바로 열린다. 공유 시트에 `message:`를 넣지 않은 이유도 이것이다.
+  글이 붙으면 AirDrop이 링크를 여는 대신 메모로 받는다.
+- **Mac → iPhone**: 메뉴 막대 **Get the iPhone App…** 이 QR 코드 창을 연다. iPhone
+  카메라로 찍으면 페이지가 열린다. 메뉴 막대 아이콘 하나로는 반쪽짜리 앱이라는 걸
+  알 길이 없으므로, **iPhone이 한 번도 연결된 적 없으면** 실행할 때마다 이 창을
+  먼저 띄운다 (`hasConnectedPhone`).
+
+두 앱 모두 스토어 링크가 아니라 같은 페이지(`CompanionLinks.downloadPage`)를
+가리킨다. Mac 앱은 스토어에 없고, iPhone 앱의 App Store 주소는 아직 없다 — 페이지가
+중간에 있으면 링크가 바뀌어도 앱을 다시 낼 필요가 없다. **출시할 때 고칠 곳은
+`docs/index.html` 스크립트 맨 위의 `APP_STORE_URL`, `MAC_DOWNLOAD_URL` 두 줄뿐이다.**
+
+### 웹 페이지 (GitHub Pages)
+
+`docs/`가 `main` 브랜치의 `/docs` 소스로 배포된다. 빌드 단계 없는 정적 HTML이고
+세 페이지가 `docs/style.css`를 같이 쓴다. 지원 페이지와 개인정보 처리방침 주소는
+App Store Connect의 "지원 URL" / "개인정보 처리방침 URL"에 그대로 넣으면 된다.
+앱이 수집·전송하는 데이터가 바뀌면(분석 SDK 추가 등) `docs/privacy/`도 같이 고칠 것.
 
 ## 빌드
 
@@ -24,7 +65,7 @@ TrackpadRemote/
 
 | 스킴 | 타깃 | 최소 버전 | Bundle ID |
 |---|---|---|---|
-| `TrackpadRemote` | iPhone/iPad 앱 | iOS 17 | `com.hyunholee.TrackpadRemote` |
+| `TrackpadRemote` | iPhone 앱 | iOS 17 | `com.leeo.TrackpadRemote` |
 | `TrackpadServer` | Mac 메뉴바 앱 | macOS 14 | `com.hyunholee.TrackpadServer` |
 
 `Shared/InputPacket.swift`는 두 타깃 모두에 들어가 있다.
@@ -189,9 +230,12 @@ log stream --predicate 'subsystem == "com.hyunholee.TrackpadServer"' --level deb
 | 두 손가락 탭 | 우클릭 |
 | 두 손가락 이동 | 스크롤 (natural) |
 | 두 손가락 오므리기/벌리기 | 축소 / 확대 |
-| 세 손가락 위 | Mission Control |
-| 세 손가락 아래 | App Exposé |
-| 세 손가락 좌/우 | 다음 / 이전 스페이스 |
+| 세 손가락 탭 | 찾아보기 (포인터 아래 단어) |
+| 세·네 손가락 위 | Mission Control |
+| 세·네 손가락 아래 | App Exposé |
+| 세·네 손가락 좌/우 | 다음 / 이전 스페이스 |
+| 엄지+세 손가락 오므리기 | Launchpad (macOS 26은 Apps) |
+| 엄지+세 손가락 벌리기 | 데스크탑 보기 |
 | 더블탭 후 홀드+이동 | 드래그 |
 
 손가락이 닿는 지점마다 확장하며 사라지는 원이 그려진다. 패드 쪽에는 커서가 없어서
@@ -219,6 +263,29 @@ log stream --predicate 'subsystem == "com.hyunholee.TrackpadServer"' --level deb
 중심점이 시작점에서 55pt 이상 움직이면 **제스처당 한 번만** 발사한다. 프레임마다
 보내면 Mission Control이 연타된다. 우세한 축으로 방향을 정한다.
 
+### 네 손가락
+
+Mac은 Mission Control·스페이스 전환을 세 손가락과 네 손가락 중 어느 쪽에 둘지
+사용자가 고르게 한다. 여기서는 **둘 다 같은 스와이프**로 받는다. 네 손가락에만
+있는 것은 엄지 핀치 — 벌어짐(중심점으로부터의 평균 거리)이 시작 대비 30pt 넘게
+변하면 오므림은 Launchpad, 벌림은 데스크탑 보기다. 엄지가 모이면 중심점도 끌려가고
+스와이프 중에도 벌어짐이 흔들리므로, 이동량과 벌어짐 변화 중 **큰 쪽이 자기 임계값을
+넘을 때만** 발사한다.
+
+손가락이 하나씩 떨어지는 동안 남은 손가락이 다른 제스처로 읽히지 않도록, 두 손가락
+처리는 그 제스처의 최대 손가락 수가 2일 때만 한다. 탭 판정도 같은 최대 손가락 수로
+나눈다 (1 좌클릭 · 2 우클릭 · 3 찾아보기 · 4 무시).
+
+### 못 하는 것
+
+아래는 macOS에 기본 단축키가 없거나 진짜 제스처 이벤트로만 되는 것들이라 넣지 않았다.
+
+- 두 손가락 좌우로 페이지 앞/뒤 — 가로 스크롤과 구분할 방법이 없다. 스크롤 이벤트에
+  phase를 실어 앱이 트랙패드 스크롤로 인식하게 하는 방법은 남아 있다
+- 두 손가락 오른쪽 가장자리에서 알림 센터, 두 손가락 더블탭 스마트 확대, 회전
+- 연속 확대(단계가 아닌) — 비공개 이벤트 필드가 필요하다
+- 세 손가락 드래그 — 세 손가락 스와이프와 겹친다
+
 ### Mac 쪽은 키보드 단축키로 주입한다
 
 진짜 트랙패드 제스처 이벤트(`NSEventTypeSwipe`/`Magnify`)를 만들려면 `CGEventType`에
@@ -232,6 +299,9 @@ log stream --predicate 'subsystem == "com.hyunholee.TrackpadServer"' --level deb
 | 세 손가락 좌 | ⌃→ (오른쪽 스페이스로) |
 | 세 손가락 우 | ⌃← |
 | 확대 / 축소 | ⌘= / ⌘- |
+| 세 손가락 탭 | ⌃⌘D (찾아보기) |
+| 네 손가락 벌리기 | F11 (데스크탑 보기) |
+| 네 손가락 오므리기 | 단축키가 없어 `Apps.app`/`Launchpad.app`을 직접 연다 |
 
 전부 공개 API고 OS 업데이트에 안 깨진다. 대가는 두 가지다 — **사용자가 이 단축키를
 바꾸거나 껐으면 해당 제스처가 안 먹고**, **확대가 연속이 아니라 단계적이다**
@@ -301,7 +371,7 @@ log stream --predicate 'subsystem == "com.hyunholee.TrackpadServer"' --level deb
 ## 알려진 한계 / 다음 단계 아이디어
 
 - 키보드 입력 (CGEvent keyboard events 추가)
-- 세 손가락 제스처 (Mission Control, 스와이프)
+- 두 손가락 페이지 앞/뒤 — 스크롤 이벤트에 phase 필드 싣기
 - 상대 이동 모드 토글 — 절대 매핑은 조준은 빠르지만 정밀 작업엔 불리하다
 - 다중 모니터에서 매핑 대상 디스플레이 선택
 - 미러링 모드 (ScreenCaptureKit + Network.framework QUIC — MC 스트림은 대역폭이 불안정해서 비추)

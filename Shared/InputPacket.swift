@@ -29,10 +29,23 @@ enum PacketType: UInt8 {
     /// Mac → iPhone. `a`, `b` = desktop width/height in points, so the phone can
     /// letterbox its pad to the display's aspect ratio and keep the map undistorted.
     case screenInfo   = 0x07
-    /// iPhone → Mac. `a` = `SwipeDirection.rawValue`. Three fingers.
+    /// iPhone → Mac. `a` = `SwipeDirection.rawValue`. Three or four fingers.
     case swipe        = 0x08
     /// iPhone → Mac. `a` = +1 to zoom in, -1 to zoom out. One step per pinch notch.
     case zoom         = 0x09
+    /// iPhone → Mac. `a` = `SystemAction.rawValue`. Fires once per gesture.
+    case systemAction = 0x0A
+}
+
+/// One-shot macOS actions a real trackpad reaches with a gesture. Named for the
+/// action rather than the gesture, like `SwipeDirection`.
+enum SystemAction: UInt8 {
+    /// Look up the word under the pointer. Three-finger tap.
+    case lookUp      = 1
+    /// Launchpad (Apps on macOS 26). Thumb and three fingers pinched together.
+    case launchpad   = 2
+    /// Show Desktop. Thumb and three fingers spread apart.
+    case showDesktop = 3
 }
 
 /// Direction the fingers travelled, in pad coordinates. What the Mac does with

@@ -108,6 +108,9 @@ final class EventInjector: @unchecked Sendable {
                 self.swipe(direction)
             case .zoom:
                 self.zoom(in: packet.a > 0)
+            case .systemAction:
+                guard let action = SystemAction(rawValue: UInt8(max(0, min(packet.a, 255)))) else { break }
+                self.perform(action)
             case .screenInfo:
                 break   // Mac sends this; it never receives it.
             }
@@ -215,6 +218,8 @@ final class EventInjector: @unchecked Sendable {
         static let upArrow: CGKeyCode    = 0x7E
         static let equals: CGKeyCode     = 0x18   // Cmd+= is zoom in
         static let minus: CGKeyCode      = 0x1B
+        static let d: CGKeyCode          = 0x02   // Ctrl+Cmd+D is Look Up
+        static let f11: CGKeyCode        = 0x67   // Show Desktop
     }
 
     private func swipe(_ direction: SwipeDirection) {
@@ -234,6 +239,32 @@ final class EventInjector: @unchecked Sendable {
     private func zoom(in zoomingIn: Bool) {
         injectorLog.info("zoom \(zoomingIn ? "in" : "out", privacy: .public)")
         postKey(zoomingIn ? Key.equals : Key.minus, flags: .maskCommand)
+    }
+
+    private func perform(_ action: SystemAction) {
+        injectorLog.info("action \(String(describing: action), privacy: .public)")
+        switch action {
+        case .lookUp:
+            postKey(Key.d, flags: [.maskControl, .maskCommand])
+        case .showDesktop:
+            // A real function-key press carries the fn flag, and the system's
+            // Show Desktop binding is recorded with it.
+            postKey(Key.f11, flags: .maskSecondaryFn)
+        case .launchpad:
+            openLaunchpad()
+        }
+    }
+
+    /// The one gesture with no default shortcut to post, so open the app itself.
+    /// macOS 26 replaced Launchpad with Apps.
+    private func openLaunchpad() {
+        let candidates = ["/System/Applications/Apps.app", "/System/Applications/Launchpad.app"]
+        guard let path = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+            injectorLog.error("launchpad: neither Apps nor Launchpad is installed")
+            return
+        }
+        NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: path),
+                                           configuration: NSWorkspace.OpenConfiguration())
     }
 
     private func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags) {

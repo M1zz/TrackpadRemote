@@ -98,7 +98,7 @@ final class ConnectionManager: NSObject, ObservableObject {
         switch packet.type {
         case .moveRelative, .scroll:
             reliable = false   // lossy is fine; the next position supersedes
-        case .leftClick, .rightClick, .dragBegin, .dragEnd, .swipe, .zoom, .screenInfo:
+        case .leftClick, .rightClick, .dragBegin, .dragEnd, .swipe, .zoom, .systemAction, .screenInfo:
             reliable = true    // must never be dropped
         }
 
