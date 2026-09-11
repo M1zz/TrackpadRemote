@@ -129,10 +129,9 @@ struct ContentView: View {
                         .padding(.horizontal, 32)
                     }
 
-                    Text("Make sure TrackpadServer is running on your Mac\nand both devices have Wi-Fi & Bluetooth on.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                    companionCard
+                        .frame(maxWidth: 420)
+                        .padding(.horizontal, 32)
 
                     // Reachable before a Mac is found: the pad's feel is worth
                     // setting up while waiting, not only once connected.
@@ -148,6 +147,35 @@ struct ContentView: View {
                 .padding(.vertical, 24)
             }
         }
+    }
+
+    /// A first-time user watching this spinner has no way to know the other half
+    /// of the app lives on the Mac. Say so, and hand them a way to get the link
+    /// onto that Mac — AirDrop from the share sheet opens it in the Mac's browser.
+    private var companionCard: some View {
+        VStack(spacing: 10) {
+            Label("Mac에도 앱이 필요해요", systemImage: "laptopcomputer.and.iphone")
+                .font(.subheadline.weight(.semibold))
+
+            Text("이 앱은 Mac용 TrackpadServer와 함께 동작합니다.\n"
+                 + "Mac에서 실행해 두고, 두 기기 모두 Wi-Fi와 Bluetooth를 켜 주세요.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            // No `message:` — AirDrop turns attached text into a note on the Mac
+            // instead of opening the link.
+            ShareLink(item: CompanionLinks.downloadPage,
+                      subject: Text("TrackpadServer for Mac")) {
+                Label("Mac으로 다운로드 링크 보내기", systemImage: "square.and.arrow.up")
+                    .font(.footnote.weight(.semibold))
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func statusView(icon: String, title: String, spinning: Bool) -> some View {

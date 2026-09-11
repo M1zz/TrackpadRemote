@@ -18,6 +18,7 @@ import SwiftUI
 
 @main
 struct TrackpadServerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var server = ServerManager()
 
     /// The icon has to distinguish "no phone yet" from "phone connected but I am
@@ -53,6 +54,7 @@ struct TrackpadServerApp: App {
                 Button("Disconnect") { server.disconnect() }
             case .waiting:
                 Text("Waiting for iPhone…")
+                Button("Get the iPhone App…") { CompanionWindow.show() }
             }
 
             Divider()
@@ -61,6 +63,16 @@ struct TrackpadServerApp: App {
                 .keyboardShortcut("q")
         } label: {
             Image(systemName: menuBarSymbol)
+        }
+    }
+}
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // A lone menu bar icon doesn't tell anyone this is half of an app. Until
+        // an iPhone has connected at least once, open with the window that says so.
+        if !UserDefaults.standard.bool(forKey: ServerManager.hasConnectedPhoneKey) {
+            CompanionWindow.show()
         }
     }
 }

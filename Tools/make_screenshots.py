@@ -448,7 +448,8 @@ def compose_ios():
 MAC_MENUS = {
     "connected": [("Connected: iPhone", True, None), ("Disconnect", False, None),
                   None, ("Quit", False, "⌘Q")],
-    "waiting": [("Waiting for iPhone…", True, None), None, ("Quit", False, "⌘Q")],
+    "waiting": [("Waiting for iPhone…", True, None), ("Get the iPhone App…", False, None),
+                None, ("Quit", False, "⌘Q")],
 }
 
 

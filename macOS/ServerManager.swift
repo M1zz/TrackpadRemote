@@ -24,6 +24,10 @@ final class ServerManager: NSObject, ObservableObject {
     @Published var state: State = .waiting
     @Published var hasAccessibilityPermission = false
 
+    /// Set the first time any iPhone connects. Until then the app opens the
+    /// "get the iPhone app" window at launch.
+    static let hasConnectedPhoneKey = "hasConnectedPhone"
+
     var isConnected: Bool {
         if case .connected = state { return true }
         return false
@@ -222,6 +226,7 @@ extension ServerManager: MCSessionDelegate {
                 self.handshakeTimeout = nil
                 serverLog.info("connected to \(peerID.displayName, privacy: .public)")
                 self.state = .connected(peerID.displayName)
+                UserDefaults.standard.set(true, forKey: Self.hasConnectedPhoneKey)
                 self.advertiser.stopAdvertisingPeer()
                 self.sendScreenInfo()
                 // Refresh permission state — user may have granted it by now

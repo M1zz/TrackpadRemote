@@ -68,10 +68,22 @@ struct SettingsView: View {
                            high: "짧게")
                     .disabled(!settings.swipeEnabled)
                 } header: {
-                    Text("세 손가락 스와이프")
+                    Text("세·네 손가락 스와이프")
                 } footer: {
                     Text("위: Mission Control · 아래: App Exposé · 좌우: 스페이스 이동. "
                          + "Mac에서 해당 단축키(⌃↑ ⌃↓ ⌃← ⌃→)를 바꾸거나 껐다면 동작하지 않습니다.")
+                }
+
+                Section {
+                    ShareLink(item: CompanionLinks.downloadPage,
+                              subject: Text("TrackpadServer for Mac")) {
+                        Label("Mac 앱 다운로드 링크 보내기", systemImage: "laptopcomputer.and.arrow.down")
+                    }
+                } header: {
+                    Text("Mac 앱")
+                } footer: {
+                    Text("Mac마다 TrackpadServer가 설치되어 있어야 연결됩니다. "
+                         + "AirDrop으로 보내면 Mac의 브라우저에서 바로 열립니다.")
                 }
 
                 Section {
