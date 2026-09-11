@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrackpadRemote</title>
+<meta name="description" content="iPhone을 Mac의 무선 트랙패드로. iPhone 앱과 Mac 앱, 두 개가 함께 동작합니다.">
+<!-- Once the iPhone app has an App Store id, also add the Smart App Banner:
+     <meta name="apple-itunes-app" content="app-id=XXXXXXXXXX"> -->
+<link rel="icon" href="icon-ios.png">
+<link rel="apple-touch-icon" href="icon-ios.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <a class="brand" href="./"><img src="icon-ios.png" alt="">TrackpadRemote</a>
+  <a href="./" aria-current="page">다운로드</a>
+  <a href="support/">지원</a>
+  <a href="privacy/">개인정보 처리방침</a>
+</nav>
+<main>
+  <header class="hero">
+    <img src="icon-ios.png" alt="">
+    <h1>iPhone을 Mac의 트랙패드로</h1>
+    <p class="lead">책상 위에 iPhone을 내려놓고 쓸어 보세요. 커서가 손끝을 따라옵니다.</p>
+    <span class="pair">앱이 두 개 필요합니다 — iPhone 앱 + Mac 앱</span>
+  </header>
+
+  <div class="apps">
+    <article class="app" id="ios">
+      <span class="here-tag">이 기기용</span>
+      <div class="app-head">
+        <img class="rounded" src="icon-ios.png" alt="">
+        <div>
+          <h2>TrackpadRemote</h2>
+          <p class="platform">iPhone · iOS 17 이상</p>
+        </div>
+      </div>
+      <p>트랙패드가 되는 쪽. 터치를 읽어 Mac으로 보냅니다.</p>
+      <ul>
+        <li>클릭, 스크롤, 핀치 확대, 세·네 손가락 제스처</li>
+        <li>IP 입력 없이 근처 Mac을 자동으로 찾음</li>
+      </ul>
+      <a class="button" id="ios-link" href="#">App Store에서 받기</a>
+    </article>
+
+    <article class="app" id="mac">
+      <span class="here-tag">이 기기용</span>
+      <div class="app-head">
+        <img src="icon-mac.png" alt="">
+        <div>
+          <h2>TrackpadServer</h2>
+          <p class="platform">Mac · macOS 14 이상</p>
+        </div>
+      </div>
+      <p>커서를 움직이는 쪽. 메뉴 막대에서 iPhone을 기다립니다.</p>
+      <ul>
+        <li>Dock 아이콘 없이 메뉴 막대에만 뜸</li>
+        <li>커서를 움직이려면 손쉬운 사용(접근성) 권한이 필요해, Mac App Store가 아니라 여기서 배포합니다</li>
+      </ul>
+      <a class="button" id="mac-link" href="#">Mac용 다운로드</a>
+    </article>
+  </div>
+
+  <section class="panel steps">
+    <h3>연결하는 법</h3>
+    <ol>
+      <li>Mac에서 <strong>TrackpadServer</strong>를 실행합니다. 메뉴 막대에 아이콘이 생깁니다.</li>
+      <li>iPhone에서 <strong>TrackpadRemote</strong>를 실행하고 로컬 네트워크 접근을 허용합니다.</li>
+      <li>두 기기 모두 Wi‑Fi와 Bluetooth가 켜져 있으면 자동으로 연결됩니다.</li>
+      <li>처음 연결될 때 Mac이 손쉬운 사용 권한을 묻습니다. 허용해야 커서가 움직입니다.</li>
+    </ol>
+    <p>잘 안 되면 <a href="support/">지원 페이지</a>를 보세요.</p>
+  </section>
+
+  <footer>
+    <span><a href="support/">지원</a></span><span><a href="privacy/">개인정보 처리방침</a></span><span><a href="https://github.com/M1zz/TrackpadRemote">GitHub</a></span>
+  </footer>
+</main>
+
+<script>
+  // The only two things to edit when a release ships. Both apps link to this
+  // page rather than to a store, so changing these needs no app update.
+  const APP_STORE_URL = "";   // e.g. "https://apps.apple.com/app/id0000000000"
+  const MAC_DOWNLOAD_URL = "https://github.com/M1zz/TrackpadRemote/releases/latest";
+
+  const iosLink = document.getElementById("ios-link");
+  if (APP_STORE_URL) {
+    iosLink.href = APP_STORE_URL;
+  } else {
+    iosLink.textContent = "App Store 출시 준비 중";
+    iosLink.setAttribute("aria-disabled", "true");
+    iosLink.removeAttribute("href");
+  }
+  document.getElementById("mac-link").href = MAC_DOWNLOAD_URL;
+
+  // People arrive from the other app — the Mac's QR code opens this on an
+  // iPhone, an AirDrop from the iPhone opens it on a Mac — so the card for the
+  // device in hand goes first. iPadOS reports itself as a Mac; it gets no tag.
+  const ua = navigator.userAgent;
+  const here = /iPhone|iPod/.test(ua) ? "ios"
+             : (/Macintosh/.test(ua) && navigator.maxTouchPoints < 2) ? "mac"
+             : null;
+  if (here) {
+    const card = document.getElementById(here);
+    card.classList.add("here");
+    card.style.order = "-1";
+  }
+</script>
+</body>
+</html>

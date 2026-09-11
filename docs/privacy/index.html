@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrackpadRemote 개인정보 처리방침</title>
+<meta name="description" content="TrackpadRemote(iPhone)와 TrackpadServer(Mac)의 개인정보 처리방침.">
+<link rel="icon" href="../icon-ios.png">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="nav">
+  <a class="brand" href="../"><img src="../icon-ios.png" alt="">TrackpadRemote</a>
+  <a href="../">다운로드</a>
+  <a href="../support/">지원</a>
+  <a href="./" aria-current="page">개인정보 처리방침</a>
+</nav>
+<main class="doc">
+  <h1>개인정보 처리방침</h1>
+  <p class="meta">시행일: 2026년 9월 11일 · 적용 대상: TrackpadRemote (iPhone), TrackpadServer (Mac)</p>
+
+  <section class="panel">
+    <h2>요약</h2>
+    <p><strong>TrackpadRemote는 어떤 개인정보도 수집하거나 외부로 보내지 않습니다.</strong>
+      개발자가 운영하는 서버가 없고, 계정도 없으며, 분석·광고·추적 도구를 쓰지 않습니다.
+      iPhone과 Mac은 서로 직접 통신하고, 그 내용은 어디에도 저장되지 않습니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>1. 기기끼리 주고받는 정보</h2>
+    <p>두 앱은 Apple의 MultipeerConnectivity로 가까운 기기끼리 로컬 네트워크(Wi‑Fi)나 Bluetooth를 통해 직접 연결되며,
+      연결은 암호화됩니다. 인터넷이나 제3자 서버를 거치지 않습니다.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>방향</th><th>내용</th><th>용도</th></tr>
+        <tr><td>iPhone → Mac</td><td>손가락 이동량, 클릭·스크롤·확대·스와이프 같은 동작 종류</td><td>Mac의 커서와 제스처 조작</td></tr>
+        <tr><td>Mac → iPhone</td><td>Mac 화면의 가로·세로 크기</td><td>트랙패드 영역을 화면 비율에 맞춤</td></tr>
+        <tr><td>서로</td><td>기기 이름 (예: "홍길동의 iPhone", "MacBook Pro")</td><td>근처 기기 목록과 연결 상태 표시</td></tr>
+      </table>
+    </div>
+    <p>이 정보는 연결된 동안 실시간으로만 쓰이고 저장되지 않습니다. 화면 내용, 파일, 입력한 글자는 주고받지 않습니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. 요청하는 권한</h2>
+    <ul>
+      <li><strong>로컬 네트워크</strong> (iPhone, Mac) — 근처의 상대 기기를 찾고 연결하기 위해 필요합니다.</li>
+      <li><strong>손쉬운 사용</strong> (Mac) — iPhone에서 온 동작을 커서 이동, 클릭, 스크롤, 단축키 이벤트로 만들어 넣기 위해 필요합니다.
+        TrackpadServer는 이 권한으로 이벤트를 <em>보내기만</em> 하며, 화면 내용이나 키보드 입력을 읽지 않습니다.</li>
+    </ul>
+    <p>권한은 언제든 iPhone과 Mac의 시스템 설정에서 끌 수 있습니다. 끄면 해당 기능만 동작하지 않습니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>3. 기기에 저장되는 정보</h2>
+    <ul>
+      <li><strong>iPhone</strong> — 포인터 속도, 스크롤 방향 같은 트랙패드 설정값.</li>
+      <li><strong>Mac</strong> — iPhone이 한 번이라도 연결된 적 있는지 여부(처음 안내 창을 띄울지 정하는 데 사용).</li>
+      <li><strong>Mac 시스템 로그</strong> — 문제 진단을 위해 연결된 기기 이름과 연결·클릭 같은 이벤트가 macOS의 통합 로그에 기록됩니다.
+        이 로그는 Mac 안에만 남고 앱이 외부로 보내지 않습니다.</li>
+    </ul>
+    <p>모두 해당 기기 안에만 있으며, 앱을 삭제하면 설정값도 함께 삭제됩니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>4. 이 웹사이트</h2>
+    <p>다운로드·지원·개인정보 처리방침 페이지는 GitHub Pages에서 호스팅됩니다. 페이지를 열 때 GitHub이 접속 기록(IP 주소 등)을 처리할 수 있으며,
+      이는 <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub 개인정보 처리방침</a>을 따릅니다.
+      이 사이트는 쿠키나 분석 스크립트를 쓰지 않습니다. Mac 앱 다운로드는 GitHub Releases에서, iPhone 앱 다운로드는 App Store에서 이루어집니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>5. 아동의 개인정보</h2>
+    <p>앱은 누구의 개인정보도 수집하지 않으므로 아동의 개인정보도 수집하지 않습니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>6. 변경</h2>
+    <p>이 방침이 바뀌면 이 페이지를 고치고 위의 시행일을 갱신합니다. 앱이 정보를 수집하게 되는 변경이라면 시행 전에 이 페이지와 앱 업데이트 설명에 알립니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>7. 문의</h2>
+    <p>개인정보에 관한 문의는 <a href="https://github.com/M1zz/TrackpadRemote/issues">GitHub Issues</a>로 남겨 주세요.</p>
+  </section>
+
+  <section class="panel" lang="en">
+    <h2>Summary in English</h2>
+    <p>TrackpadRemote (iPhone) and TrackpadServer (Mac) collect no personal data. There is no server, no account, and no analytics,
+      advertising or tracking. The two apps talk directly over the local network or Bluetooth using Apple's MultipeerConnectivity with
+      encryption, exchanging only touch movements and gesture types, the Mac's screen size, and device names — used live and never stored.
+      The Mac app uses the Accessibility permission only to post pointer, scroll and keyboard-shortcut events; it does not read screen content or keystrokes.
+      Pad settings stay on the iPhone; the Mac's unified log records connection events locally. Questions: <a href="https://github.com/M1zz/TrackpadRemote/issues">GitHub Issues</a>.</p>
+  </section>
+
+  <footer>
+    <span><a href="../">다운로드</a></span><span><a href="../support/">지원</a></span>
+  </footer>
+</main>
+</body>
+</html>
