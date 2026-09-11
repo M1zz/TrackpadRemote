@@ -30,7 +30,7 @@
 - [x] 지원 페이지 `docs/support/`
 - [x] 개인정보 처리방침 `docs/privacy/`
 - [x] README에 링크
-- [ ] 커밋/푸시 후 Pages 활성화 (main /docs) 및 배포 확인
+- [x] 커밋/푸시 후 Pages 활성화 (main /docs) 및 배포 확인 — 세 페이지 모두 200
 - [ ] (출시 시) `docs/index.html`의 `APP_STORE_URL` 채우기, Mac 앱 GitHub Release 올리기 — 지금 Mac 다운로드 버튼은 빈 Releases로 간다
 
 ## 세·네 손가락 제스처
