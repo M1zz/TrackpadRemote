@@ -72,6 +72,36 @@ iOS는 정사각 full-bleed로 내보내고(마스킹은 시스템이 한다), m
 안에 824pt 스퀘어클로 인셋 + 그림자를 직접 그려 넣는다 — 플랫폼마다 요구하는
 프레이밍이 달라서 마스터 두 장이 필요하다.
 
+### 앱스토어 스크린샷 재생성
+
+스크린샷도 `Tools/make_screenshots.py`가 만든다. iOS와 macOS는 따로 나온다.
+
+```bash
+python3 Tools/make_screenshots.py capture   # 시뮬레이터에서 실제 iOS 화면 캡처 (Xcode 필요)
+python3 Tools/make_screenshots.py           # 캡션·기기 프레임·터치 합성
+python3 Tools/make_screenshots.py ios       # 한쪽만: ios / mac
+```
+
+| 폴더 | 크기 | 내용 |
+|---|---|---|
+| `Screenshots/iOS` | 1242×2688 (6.5" 세로) | 트랙패드 / 클릭 / 스크롤·확대 / 세 손가락 / 자동 연결 / 설정 |
+| `Screenshots/macOS` | 2880×1800 | 메뉴 막대 + iPhone / 대기 메뉴 / 제스처 / 1:1 연결 |
+| `Screenshots/captures` | — | 합성에 쓰는 원본 캡처. 커밋해 두므로 캡션만 고칠 땐 `capture` 불필요 |
+
+- **iOS 화면은 진짜 앱이다.** Debug 빌드는 실행 인자로 화면을 연출한다 —
+  `-screenshotState connected|searching`, `-screenshotSettings YES`. 이때는 브라우징을
+  시작하지 않으므로 근처에 실제 Mac이 있어도 캡처 중에 화면이 바뀌지 않는다.
+  Release에는 들어가지 않는다(`#if DEBUG`).
+- 앱은 가로 전용인데 캔버스는 세로라, 기기를 세워서(다이내믹 아일랜드가 위) UI가
+  옆으로 누운 채로 넣는다. 가로 기기를 세로 캔버스에 넣으면 폭에 맞춰 띠처럼 작아진다.
+- 패드 위의 원은 앱이 실제로 그리는 립플(`showRipple`)과 같은 모양·색으로 덧그린
+  것이다. 립플은 0.35초짜리 애니메이션이라 캡처로는 잡히지 않는다.
+- **Mac 화면은 다시 그린 것이다.** 메뉴 막대 앱이라 캡처할 창이 없고, `NSMenu`는
+  오프스크린 렌더가 안 된다. 메뉴 문구는 `MAC_MENUS`에 옮겨 두었으니
+  `TrackpadServerApp.swift`의 메뉴를 바꾸면 거기도 같이 고칠 것.
+- SF Symbol은 Pillow가 못 그려서 `Tools/render_symbols.swift`로 PNG를 뽑아 쓴다.
+- 앱스토어는 알파 채널이 있는 PNG를 거부하므로 전부 RGB로 저장한다.
+
 ### 접근성 권한이 자꾸 풀린다면
 
 **서버 타깃은 반드시 안정적인 서명 identity로 빌드해야 한다.** ad-hoc 서명

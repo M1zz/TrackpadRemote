@@ -52,6 +52,9 @@ final class ConnectionManager: NSObject, ObservableObject {
         browser = MCNearbyServiceBrowser(peer: peerID,
                                          serviceType: ServiceConfig.serviceType)
         browser.delegate = self
+        #if DEBUG
+        if stageScreenshotState() { return }
+        #endif
         browser.startBrowsingForPeers()
     }
 
@@ -162,6 +165,29 @@ extension ConnectionManager: MCSessionDelegate {
                              fromPeer peerID: MCPeerID, at localURL: URL?,
                              withError error: Error?) {}
 }
+
+#if DEBUG
+// MARK: - App Store screenshots
+
+extension ConnectionManager {
+    /// Stages a screen for `Tools/make_screenshots.py` with no Mac on the network:
+    /// launch with `-screenshotState connected` or `-screenshotState searching`.
+    /// Returns true when it staged one — browsing then never starts, so a real
+    /// Mac nearby can't auto-connect and replace the screen mid-capture.
+    fileprivate func stageScreenshotState() -> Bool {
+        switch UserDefaults.standard.string(forKey: "screenshotState") {
+        case "connected":
+            state = .connected("MacBook Pro")
+        case "searching":
+            discoveredMacs = [MCPeerID(displayName: "MacBook Pro"),
+                              MCPeerID(displayName: "Mac Studio")]
+        default:
+            return false
+        }
+        return true
+    }
+}
+#endif
 
 // MARK: - MCNearbyServiceBrowserDelegate
 

@@ -9,7 +9,12 @@ struct ContentView: View {
     @EnvironmentObject var connection: ConnectionManager
     @EnvironmentObject var settings: PadSettings
 
+    #if DEBUG
+    // `-screenshotSettings YES` opens the sheet at launch for Tools/make_screenshots.py.
+    @State private var isShowingSettings = UserDefaults.standard.bool(forKey: "screenshotSettings")
+    #else
     @State private var isShowingSettings = false
+    #endif
 
     private let padCornerRadius: CGFloat = 20
 

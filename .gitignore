@@ -14,6 +14,9 @@ xcuserdata/
 # macOS
 .DS_Store
 
+# Python
+__pycache__/
+
 # Swift Package Manager
 .build/
 .swiftpm/
