@@ -32,6 +32,7 @@ targets:
       path: Resources/TrackpadRemote-Info.plist
       properties:
         CFBundleDisplayName: Trackpad
+        LSApplicationCategoryType: public.app-category.utilities
         UILaunchScreen: {}
         # Landscape only: the pad is a 1:1 scale model of a landscape desktop,
         # so a portrait surface would waste most of the screen.
@@ -66,6 +67,10 @@ targets:
       path: Resources/TrackpadServer-Info.plist
       properties:
         CFBundleDisplayName: TrackpadServer
+        # Required by App Store Connect validation, and Finder/Launch Services
+        # use it to file the app. Utilities is the right bucket for a menu bar
+        # input helper.
+        LSApplicationCategoryType: public.app-category.utilities
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
         NSLocalNetworkUsageDescription: Receives trackpad input from your iPhone over the local network.
