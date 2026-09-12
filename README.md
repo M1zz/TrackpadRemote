@@ -59,6 +59,47 @@ TrackpadRemote/
 App Store Connect의 "지원 URL" / "개인정보 처리방침 URL"에 그대로 넣으면 된다.
 앱이 수집·전송하는 데이터가 바뀌면(분석 SDK 추가 등) `docs/privacy/`도 같이 고칠 것.
 
+## Mac 앱 배포 (GitHub Releases)
+
+Mac 앱은 스토어에 못 올린다. 다운로드 페이지의 "Mac용 다운로드" 버튼은
+`releases/latest`로 가므로, **가장 최신 릴리즈가 Mac 릴리즈여야 하고 첨부 파일
+이름은 `TrackpadServer.zip`으로 고정**이다.
+
+```bash
+Tools/release_mac.sh              # project.yml의 MARKETING_VERSION으로
+Tools/release_mac.sh 1.1          # 버전 지정
+Tools/release_mac.sh --no-publish # 공증까지만, 릴리즈는 안 만듦 (연습용)
+```
+
+아카이브 → Developer ID export → 공증 → staple → 재압축 → `gh release create`
+까지 한 번에 한다. 중간에 샌드박스가 켜져 있거나 하드닝 런타임이 꺼져 있으면
+거기서 멈춘다 — 둘 다 통과해도 조용히 안 움직이는 앱이 나오는 조합이라 미리 막는다.
+
+**공증을 건너뛰면 안 된다.** 서명만 된 앱은 다운로드 격리 딱지가 붙은 채로
+Gatekeeper에 막혀 아예 안 열린다. 사용자는 그걸 "앱이 고장났다"로 읽는다.
+
+### 최초 1회 준비
+
+둘 다 사람이 웹에서 해야 하는 일이다.
+
+1. **Developer ID Application 인증서** — `Apple Development` 인증서로는 스토어
+   밖 배포 서명을 못 한다. Xcode ▸ Settings ▸ Accounts ▸ Manage Certificates ▸
+   `+` ▸ Developer ID Application (또는
+   [developer.apple.com/account/resources/certificates](https://developer.apple.com/account/resources/certificates)).
+   **Account Holder 권한이 필요하다.**
+2. **notarytool 자격 증명** — [appleid.apple.com](https://appleid.apple.com) ▸
+   로그인 및 보안 ▸ 앱 암호에서 앱 전용 암호를 만든 뒤 한 번만 저장한다.
+
+   ```bash
+   xcrun notarytool store-credentials TrackpadRemote \
+     --apple-id <Apple ID> --team-id QGAQ3AY3R3 --password <앱 전용 암호>
+   ```
+
+   다른 이름으로 저장했으면 `NOTARY_PROFILE=<이름> Tools/release_mac.sh`.
+
+준비가 됐는지는 `Tools/release_mac.sh --no-publish`가 알려준다. 프리플라이트에서
+멈추면 아직인 것이고, 빌드가 시작되면 된 것이다.
+
 ## 빌드
 
 `TrackpadRemote.xcodeproj`가 리포에 포함되어 있다. 열고 스킴을 골라 실행하면 된다.

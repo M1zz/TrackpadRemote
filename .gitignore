@@ -21,3 +21,6 @@ __pycache__/
 .build/
 .swiftpm/
 Packages/
+
+# Release pipeline output
+build/mac-release/
