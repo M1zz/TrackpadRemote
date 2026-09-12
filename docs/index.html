@@ -82,7 +82,11 @@
   // The only two things to edit when a release ships. Both apps link to this
   // page rather than to a store, so changing these needs no app update.
   const APP_STORE_URL = "";   // e.g. "https://apps.apple.com/app/id0000000000"
-  const MAC_DOWNLOAD_URL = "https://github.com/M1zz/TrackpadRemote/releases/latest";
+  // /releases/latest/download/<asset> always resolves to the newest release's
+  // asset of that name, so the button downloads in one click and never needs
+  // editing per release — as long as the Mac release stays the newest one and
+  // keeps the asset name. Tools/release_mac.sh holds up both ends.
+  const MAC_DOWNLOAD_URL = "https://github.com/M1zz/TrackpadRemote/releases/latest/download/TrackpadServer.zip";
 
   const iosLink = document.getElementById("ios-link");
   if (APP_STORE_URL) {

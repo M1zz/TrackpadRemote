@@ -59,8 +59,11 @@ die() { printf '\n\033[31merror: %s\033[0m\n' "$1" >&2; exit 1; }
 
 say "Preflight"
 
-security find-identity -v -p codesigning | grep -q "Developer ID Application" \
+IDENTITIES=$(security find-identity -v -p codesigning 2>/dev/null || true)
+[[ "$IDENTITIES" == *"Developer ID Application"* ]] \
   || die "No 'Developer ID Application' certificate in the keychain.
+       (If you know it is there, the login keychain may simply be locked —
+       unlock it in Keychain Access and run again.)
        An 'Apple Development' certificate cannot sign apps for distribution
        outside the App Store. Create one at
        https://developer.apple.com/account/resources/certificates
@@ -88,7 +91,7 @@ fi
 command -v xcodegen >/dev/null && xcodegen generate >/dev/null
 
 echo "version   $VERSION  (tag $TAG)"
-echo "identity  $(security find-identity -v -p codesigning | grep 'Developer ID Application' | head -1 | sed 's/.*"\(.*\)"/\1/')"
+echo "identity  $(printf '%s\n' "$IDENTITIES" | grep 'Developer ID Application' | head -1 | sed 's/.*"\(.*\)"/\1/')"
 echo "notary    $NOTARY_PROFILE"
 
 # ------------------------------------------------------------------ archive
@@ -141,11 +144,21 @@ APP="$EXPORT_DIR/$APP_NAME"
 # The sandbox must stay off and the hardened runtime must stay on; getting
 # either backwards produces an app that installs and then silently refuses to
 # move the cursor. Cheap to assert, expensive to discover from a bug report.
-codesign -d --entitlements - --xml "$APP" 2>/dev/null | plutil -convert xml1 -o - - \
-  | grep -A1 'com.apple.security.app-sandbox' | grep -q '<false/>' \
+#
+# Read into variables and match with [[ ]] rather than piping into `grep -q`:
+# under `set -o pipefail` a matching `grep -q` closes the pipe early, the
+# upstream codesign dies of SIGPIPE, and the whole check reports failure on a
+# perfectly good app.
+ENTITLEMENTS=$(codesign -d --entitlements - --xml "$APP" 2>/dev/null | plutil -convert xml1 -o - - || true)
+SANDBOX_VALUE=$(printf '%s\n' "$ENTITLEMENTS" | grep -A1 'com.apple.security.app-sandbox' | tail -1)
+[[ "$SANDBOX_VALUE" == *"<false/>"* ]] \
   || die "App Sandbox is enabled — CGEventPost will be blocked and the app will do nothing"
-codesign -d -v "$APP" 2>&1 | grep -q 'flags=.*runtime' \
+
+SIGNATURE=$(codesign -d -vv "$APP" 2>&1 || true)
+[[ "$SIGNATURE" == *"flags="*"runtime"* ]] \
   || die "Hardened runtime is not enabled — notarization will reject this"
+[[ "$SIGNATURE" == *"Developer ID Application"* ]] \
+  || die "Not signed with Developer ID — Gatekeeper will refuse this download"
 
 # ---------------------------------------------------------------- notarize
 

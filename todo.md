@@ -32,9 +32,9 @@
 - [x] README에 링크
 - [x] 커밋/푸시 후 Pages 활성화 (main /docs) 및 배포 확인 — 세 페이지 모두 200
 - [x] Mac 릴리즈 파이프라인 `Tools/release_mac.sh` (아카이브→Developer ID export→공증→staple→gh release)
-- [ ] (사람이 할 일) Developer ID Application 인증서 발급 + `notarytool store-credentials` — 이게 있어야 위 스크립트가 돈다
-- [ ] (출시 시) `Tools/release_mac.sh` 실행해 Mac 앱 Release 올리기 — 지금 Mac 다운로드 버튼은 빈 Releases로 간다
-- [ ] (출시 시) `docs/index.html`의 `APP_STORE_URL` 채우기
+- [x] Developer ID 인증서 + notarytool 자격 증명 (ASC API 키 방식 — Apple ID가 잠겨 앱 전용 암호는 못 씀)
+- [x] Mac 앱 v1.0 릴리즈 공개 — 공증 통과, 다운로드 버튼이 zip으로 직결 (`releases/latest/download/TrackpadServer.zip`)
+- [ ] (출시 시) `docs/index.html`의 `APP_STORE_URL` 채우기 — iOS 버튼은 아직 "출시 준비 중"
 
 ## 세·네 손가락 제스처
 - [x] 세 손가락 탭 → 찾아보기 (⌃⌘D)
