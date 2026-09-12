@@ -86,7 +86,7 @@ Gatekeeper에 막혀 아예 안 열린다. 사용자는 그걸 "앱이 고장났
    밖 배포 서명을 못 한다. Xcode ▸ Settings ▸ Accounts ▸ Manage Certificates ▸
    `+` ▸ Developer ID Application (또는
    [developer.apple.com/account/resources/certificates](https://developer.apple.com/account/resources/certificates)).
-   **Account Holder 권한이 필요하다.**
+   Account Holder 권한이 필요한데, 개인(Individual) 계정이면 본인이 곧 Account Holder다.
 2. **notarytool 자격 증명** — [appleid.apple.com](https://appleid.apple.com) ▸
    로그인 및 보안 ▸ 앱 암호에서 앱 전용 암호를 만든 뒤 한 번만 저장한다.
 

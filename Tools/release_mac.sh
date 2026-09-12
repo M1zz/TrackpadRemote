@@ -66,7 +66,7 @@ security find-identity -v -p codesigning | grep -q "Developer ID Application" \
        https://developer.apple.com/account/resources/certificates
        (or Xcode ▸ Settings ▸ Accounts ▸ Manage Certificates ▸ + ▸
        Developer ID Application) and download it into the login keychain.
-       Requires the Account Holder role."
+       Needs the Account Holder role — on an individual account that is you."
 
 xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 \
   || die "No notarytool keychain profile named '$NOTARY_PROFILE'.
